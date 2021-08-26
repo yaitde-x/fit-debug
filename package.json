@@ -1,0 +1,207 @@
+{
+  "name": "fitnesse-debug",
+  "displayName": "Fitnesse Debug",
+  "version": "0.46.5",
+  "publisher": "yaitdex",
+  "description": "Fitnesse debugger extension.",
+  "author": {
+    "name": "Eric Oliver",
+    "email": "eo@yaitde.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "multi-root ready"
+  ],
+  "engines": {
+    "vscode": "^1.59.0"
+  },
+  "icon": "images/mock-debug-icon.png",
+  "categories": [
+    "Debuggers"
+  ],
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Microsoft/vscode-mock-debug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Microsoft/vscode-mock-debug/issues"
+  },
+  "scripts": {
+    "vscode:prepublish": "yarn run package-ext && yarn run package-web",
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "watch": "webpack --watch --devtool nosources-source-map --info-verbosity verbose --config ./build/extension.webpack.config.js",
+    "watch2": "tsc -watch -p ./",
+    "pretest": "yarn run compile && yarn run lint",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "package-ext": "webpack --mode production --config ./build/extension.webpack.config.js",
+    "compile-web": "webpack --devtool nosources-source-map --config ./build/web-extension.webpack.config.js",
+    "watch-web": "webpack --watch --devtool nosources-source-map --info-verbosity verbose --config ./build/web-extension.webpack.config.js",
+    "package-web": "webpack --mode production --config ./build/web-extension.webpack.config.js"
+  },
+  "dependencies": {
+    "await-notify": "1.0.1",
+    "vscode-debugadapter": "^1.49.0-pre.0"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.4",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^14.14.37",
+    "@types/vscode": "^1.59.0",
+    "@typescript-eslint/eslint-plugin": "^4.29.2",
+    "@typescript-eslint/parser": "^4.29.2",
+    "eslint": "^7.32.0",
+    "glob": "^7.1.7",
+    "mocha": "^9.0.3",
+    "ts-loader": "^8.1.0",
+    "typescript": "^4.3.5",
+    "vsce": "^1.96.1",
+    "vscode-debugadapter-testsupport": "^1.49.0-pre.0",
+    "webpack": "^4.46.0",
+    "webpack-cli": "^3.3.12"
+  },
+  "main": "./dist/ext/extension.js",
+  "browser": "./dist/web/extension.js",
+  "activationEvents": [
+    "onDebugResolve:fitnesse",
+    "onDebugDynamicConfigurations:fitnesse",
+    "onCommand:extension.fitnesse-debug.getProgramName",
+    "onCommand:extension.fitnesse-debug.runEditorContents",
+    "onCommand:extension.fitnesse-debug.debugEditorContents"
+  ],
+  "workspaceTrust": {
+    "request": "never"
+  },
+  "contributes": {
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "extension.fitnesse-debug.runEditorContents",
+          "when": "resourceLangId == fitnesse"
+        },
+        {
+          "command": "extension.fitnesse-debug.debugEditorContents",
+          "when": "resourceLangId == fitnesse"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "extension.fitnesse-debug.debugEditorContents",
+          "when": "resourceLangId == fitnesse"
+        },
+        {
+          "command": "extension.fitnesse-debug.runEditorContents",
+          "when": "resourceLangId == fitnesse"
+        }
+      ],
+      "debug/variables/context": [
+        {
+          "command": "extension.fitnesse-debug.toggleFormatting",
+          "when": "debugType == 'fitnesse' && debugProtocolVariableMenuContext == 'simple'"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "extension.fitnesse-debug.debugEditorContents",
+        "title": "Debug Fitnesse Test",
+        "category": "Fitnesse Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "extension.fitnesse-debug.runEditorContents",
+        "title": "Run Fitnesse Test",
+        "category": "Fitnesse Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(play)"
+      },
+      {
+        "command": "extension.fitnesse-debug.toggleFormatting",
+        "title": "Toggle between decimal and hex formatting"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "fitnesse"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "fitnesse",
+        "languages": [
+          "fitnesse"
+        ],
+        "label": "Fitnesse Debug",
+        "program": "./out/debugAdapter.js",
+        "runtime": "node",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Absolute path to a Fitnesse test.",
+                "default": "${workspaceFolder}/${command:AskForProgramName}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop after launch.",
+                "default": true
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": true
+              },
+              "compileError": {
+                "type": "string",
+                "description": "Simulates a compile error in 'launch' request.",
+                "enum": [
+                  "default",
+                  "show",
+                  "hide"
+                ],
+                "enumDescriptions": [
+                  "default: show fake compile error to user",
+                  "show fake compile error to user",
+                  "do not show fake compile error to user"
+                ]
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "fitnesse",
+            "request": "launch",
+            "name": "Ask for test name",
+            "program": "${workspaceFolder}/${command:AskForProgramName}",
+            "stopOnEntry": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Fitnesse Debug: Launch",
+            "description": "A new configuration for 'debugging' a user selected Fitnesse test.",
+            "body": {
+              "type": "fitnesse",
+              "request": "launch",
+              "name": "Ask for test name",
+              "program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
+              "stopOnEntry": true
+            }
+          }
+        ],
+        "variables": {
+          "AskForProgramName": "extension.fitnesse-debug.getProgramName"
+        }
+      }
+    ]
+  }
+}

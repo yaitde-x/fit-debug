@@ -1,0 +1,1916 @@
+!|Karmak.ProfitMaster.Fitnesse.PMSession|
+
+!|Set Test Revision History|
+|Rev Date|Name|Reason for Modification|Enter!|
+|04/05/2021|Kirsten|New test for PACCAR Registration and Warranty Claim Maintenance|True|
+
+!2 Test setup includes:
+.#1 Set system time
+.#2 Add Paccar Customer
+.#3 Add Customer to Paccar Interface Options
+.#4 Check use PRW in Inerface Options
+
+
+!2 Scenarios covered in this test:
+.#5 Permission
+.#6 From WAR96010 - Verify expected fields are visible, enabled, and required in New Mode.
+.#7 Setting specific Claim Categories should make different fields required
+.#8 From WAR96010 - Search for a record and verify fields in View Mode. 
+.#9 From WAR96010 - New PRW Record - Action = Submit
+.#10 From WAR96010 - New PRW Record - Action = Draft
+.#11 From WAR96010 - New PRW Record - Verify Required fields for all Claim Categories.
+.#12 Cancel logic. Edit exisitng fields and cancel. Fields should revert to orginal data. 
+.#13 Edit and Save fields. Fields should hold new data. 
+.#14 Delete
+.#15 Copy New
+
+This injects test metadata into the test runtime environment
+!|Set Test Attributes|
+|Test Number|Status|Enter!|
+|PAC95010-001|Concept||
+
+!|Load Setup Data|ImmediateInterbranchTransferSetup|
+|Go!|
+||
+
+!|login user|
+
+!include <ProfitMaster.ProfitMasterSetUp.RoLaborInventoryDefault
+!include <ProfitMaster.ProfitMasterSetUp.RoPaymentMethodDefault
+!include <ProfitMaster.ProfitMasterSetUp.RoLaborAccountingDefault
+!include <ProfitMaster.ProfitMasterSetUp.PartsAccountingBoth
+!include <ProfitMaster.ProfitMasterSetUp.TaxBodyLiabilityRoTaxes
+
+!anchor 1
+
+!|Set system time|04/10/2013 8:00 AM|
+
+!anchor 2
+
+'''Add Paccar Customer'''
+
+!|Open Search Form|Customer|
+|Form Mode|EntityType|Enter!|
+|new|Customer|>>Customer_form|
+
+!|Perform action|New_|
+
+!|Logout user|
+
+!|Set Form Fields|
+|txtCustomer|Company Name|Go!|
+|PACCAR|Paccar Warranty Customer|TRUE|
+
+!|Set Form Fields|
+|WarrantyAccount|Go!|
+|true|TRUE|
+
+!|Set Form Fields|
+|BillToAddress.Address1|BillToAddress.Address2|BillToAddress.City|BillToAddress.Region|BillToAddress.PostalCode|BillToAddress.TaxBody|TaxStatus|Payment Terms|Salesman|BillToAddress.Country|BillToAddress.County|Go!|
+|123 North Main|Suite A|Springfield|IL|98374|IL00000|Tax1|Net 10|Demo|USA|Greene|TRUE|
+
+!|Set Form Fields|
+|Salutation|FirstName|MI|LastName|Title|Go!|
+|Mr.|Bill|H|Jones|Warranty Guy|TRUE|
+
+!|Set Form Fields|
+|Communications.OfficePhone|Communications.ShopPhone|Communications.CellPhone|Communications.Fax|Communications.EmailAddress|Communications.AllowEmail|Labor Accounting|Parts Accounting|Go!|
+|7776665555|8883232|1234567890|2223334444|abcd@dddddd.com|True|Retail|Retail-Parts|TRUE|
+
+!|Set Form Fields|
+|Credit Card|Charge|Go!|
+|True|True|True|
+
+!|Inspect Form Fields|
+|Cash|Check|Credit Card|COD|Charge|
+|True|False|True|False|True|
+
+!|Set Form Fields|
+|Default Payment Method|Go!|
+|Cash|True|
+
+!|Set form fields|
+|Outside Parts Salesperson|Go!|
+|FF11|True|
+
+!|Set Form Fields|
+|CreditLimit|PerformCreditCheck|Go!|
+|50000.00|False|True|
+
+!|Set Form Fields|
+|Communications.EmailAddress|Go!|
+|comm@dddddd.com|True|
+
+!|Click tab|tpgMiscellaneousInfo|
+
+!|Set form fields|
+|txtWebAddress|Go!|
+|www.karmakcompany1.com|TRUE|
+
+!|Perform action|Save|
+
+!|Close form with confirmation|
+|Go!|
+||
+
+!|Close form|
+
+!|Open Search Form|Customer|
+|Form Mode|EntityType|Enter!|
+|new|Customer|>>Customer_form|
+
+!|Perform action|Search|
+
+!|Select search row where|Customer|equals|50000|
+
+!|Perform action|Edit|
+
+!|Set form fields|
+|BillToAddress.Address2|BillToAddress.Country|BillToAddress.County|Go! |
+|Suite B               |USA                  |Greene              |TRUE|
+
+!|Perform action|Save|
+
+!|Close form|
+
+!anchor 3
+!anchor 4
+
+'''Add Customer to Paccar Interface Options'''
+
+
+!|Open Search Form|Paccar Interface Options|
+|Form Mode|EntityType|Enter!|
+|new|PaccarInterfaceOptionsSearch|>>PaccarInterfaceOptions_form|
+
+!|Perform action|New_|
+
+!|Set form fields|
+|DealerCode|Go!|
+|1234|True|
+
+!|Set form fields|
+|vtlCustomer|Go!|
+|PACCAR|True|
+
+!|Perform action|Save|
+
+!|Close form with confirmation|
+|Go!|
+||
+
+!|Logout user|
+
+!|Login user|
+
+'''114478 PRW: PAC96200 PACCAR Registration & Warranty Claim Maintenance – Claim tab'''
+
+!anchor 5
+
+'''Verifying Permission'''
+
+!|Set Permission|When this parameter is checked, the default action for new claims is submit.|To Value|False|For Application|PAC96200|Where User Group Is|System Administrator|
+
+!|Logout user|
+
+!|Login user|
+
+!|Open Form|Warranty Claim Management|
+|Form Mode|EntityType|Enter!|
+|new|WarrantyClaimManagement|>>WarrantyClaimManagement_form|
+
+!|Click ToolBar Button|New|Menu Item|PACCAR - PRW|
+
+!|Inspect form fields|
+|grpAction|
+|Draft|
+
+!|Set Permission|When this parameter is checked, the default action for new claims is submit.|To Value|True|For Application|PAC96200|Where User Group Is|System Administrator|
+
+!|Logout user|
+
+!|Login user|
+
+!|Open Form|Warranty Claim Management|
+|Form Mode|EntityType|Enter!|
+|new|WarrantyClaimManagement|>>WarrantyClaimManagement_form|
+
+!|Click ToolBar Button|New|Menu Item|PACCAR - PRW|
+
+!|Inspect form fields|
+|grpAction|
+|Submit|
+
+!|close form|
+
+!|close form|
+
+
+'''Selecting New from WAR96010 - Warranty Claim Management - Default Action = Submit'''
+
+'''Claim tab'''
+
+!|Open Form|Warranty Claim Management|
+|Form Mode|EntityType|Enter!|
+|new|WarrantyClaimManagement|>>WarrantyClaimManagement_form|
+
+!|Click ToolBar Button|New|Menu Item|PACCAR - PRW|
+
+!|Set form fields|
+|grpAction|Go!|
+|Draft|True|
+
+!anchor 10
+
+'''Inspect if fields are visible, enabled, and required. - Action = Draft'''
+
+'''Inspect Customer Group Box for a New Claim'''
+!|Check|that the field|vtlOwningCustomer|is visible|True|
+|Check|that the field|txtCompanyName|is visible|True|
+|Check|that the field|txtPhone      |is visible|True|
+|Check|that the field|txtAddress1   |is visible|True|
+|Check|that the field|txtAddress2   |is visible|True|
+|Check|that the field|txtCity       |is visible|True|
+|Check|that the field|vtlRegion     |is visible|True|
+|Check|that the field|txtPostalCode |is visible|True|
+|Check|that the field|txtCountry    |is visible|True|
+|Check|that the field|txtCounty     |is visible|True|
+
+!|Check|that the field|vtlOwningCustomer|is enabled|True|
+|Check|that the field|txtCompanyName|is enabled|True|
+|Check|that the field|txtPhone      |is enabled|True|
+|Check|that the field|txtAddress1   |is enabled|True|
+|Check|that the field|txtAddress2   |is enabled|True|
+|Check|that the field|txtCity       |is enabled|True|
+|Check|that the field|vtlRegion     |is enabled|True|
+|Check|that the field|txtPostalCode |is enabled|True|
+|Check|that the field|txtCountry    |is enabled|True|
+|Check|that the field|txtCounty     |is enabled|True|
+
+!|Check|that the field|vtlOwningCustomer|is in error|False|
+|Check|that the field|txtCompanyName|is in error|True |
+|Check|that the field|txtPhone      |is in error|False|
+|Check|that the field|txtAddress1   |is in error|False|
+|Check|that the field|txtAddress2   |is in error|False|
+|Check|that the field|txtCity       |is in error|False|
+|Check|that the field|vtlRegion     |is in error|False|
+|Check|that the field|txtPostalCode |is in error|False|
+|Check|that the field|txtCountry    |is in error|False|
+|Check|that the field|txtCounty     |is in error|False|
+
+!|Inspect form fields|
+|vtlOwningCustomer|txtCompanyName|txtPhone|txtAddress1|txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|
+|                 |              |        |           |           |       |         |             |          |         |
+
+!|Check|that the field|vtlBranch|is visible|True|
+|Check|that the field|cboClaimStatus        |is visible|True|
+|Check|that the field|vtlOriginalRepairOrder|is visible|True|
+|Check|that the field|txtClaimNumber        |is visible|True|
+|Check|that the field|vtlWarrantyRepairOrder|is visible|True|
+|Check|that the field|txtDealerCode         |is visible|True|
+
+
+!|Check|that the field|vtlBranch|is enabled|True|
+|Check|that the field|cboClaimStatus        |is enabled|True |
+|Check|that the field|vtlOriginalRepairOrder|is enabled|False |
+|Check|that the field|txtClaimNumber        |is enabled|False|
+|Check|that the field|vtlWarrantyRepairOrder|is enabled|True |
+|Check|that the field|txtDealerCode         |is enabled|True |
+
+
+!|Check|that the field|vtlBranch|is in error|True|
+|Check|that the field|cboClaimStatus        |is in error|False|
+|Check|that the field|vtlOriginalRepairOrder|is in error|False|
+|Check|that the field|txtClaimNumber        |is in error|False|
+|Check|that the field|vtlWarrantyRepairOrder|is in error|True|
+|Check|that the field|txtDealerCode         |is in error|True |
+
+
+!|Check|that the DateTimePicker|Open Date|Is Checked|True|
+
+!|Check|that the DateTimePicker|Closed Date|Is Checked|True|
+
+!|Inspect form fields|
+|vtlBranch|cboClaimStatus|vtlOriginalRepairOrder|txtClaimNumber|vtlWarrantyRepairOrder|txtDealerCode|Open Date |Closed Date|
+|         |Open          |                      |              |                      |             |04/10/2013|04/10/2013|
+
+!|Inspect Dropdown Contents|cboClaimStatus|
+|value|
+|Open|
+|Closed|
+|Finalized|
+
+!anchor 6
+
+'''Inspect Summary Group Box for a New Claim'''
+!|Inspect form fields|
+|lblParts|lblLabor|lblMiscellaneous|lblClaimTot|
+|Parts:|Labor:|Miscellaneous:|Claim Total:|
+
+'''Inspect Chassis/Claim Group Box for a New Claim'''
+
+!|Check|that the field|vtlVin|is visible|True|
+|Check|that the field|txtChassis                    |is visible|True|
+|Check|that the field|txtModel                      |is visible|True|
+|Check|that the field|cboMeterType                  |is visible|True|
+|Check|that the field|txtMeterReading               |is visible|True|
+|Check|that the field|txtEngineHours                |is visible|True|
+|Check|that the field|grpAction                     |is visible|True|
+|Check|that the field|grpClaimType                  |is visible|True|
+|Check|that the field|cboClaimCategory              |is visible|True|
+|Check|that the field|cboDivisionCode               |is visible|True|
+|Check|that the field|chkDSFW                       |is visible|True|
+|Check|that the field|txtPriorApprovalID            |is visible|True|
+|Check|that the field|txtServiceMaterialSerialNumber|is visible|True|
+|Check|that the field|txtCampaignCode        |is visible|True|
+
+!|Check|that the field|vtlVin|is enabled|True|
+|Check|that the field|txtChassis                    |is enabled|True|
+|Check|that the field|txtModel                      |is enabled|True|
+|Check|that the field|cboMeterType                  |is enabled|True|
+|Check|that the field|txtMeterReading               |is enabled|True|
+|Check|that the field|txtEngineHours                |is enabled|True|
+|Check|that the field|grpAction                     |is enabled|True|
+|Check|that the field|grpClaimType                  |is enabled|True|
+|Check|that the field|cboClaimCategory              |is enabled|True|
+|Check|that the field|cboDivisionCode               |is enabled|True|
+|Check|that the field|chkDSFW                       |is enabled|True|
+|Check|that the field|txtPriorApprovalID            |is enabled|True|
+|Check|that the field|txtServiceMaterialSerialNumber|is enabled|True|
+|Check|that the field|txtCampaignCode        |is enabled|True|
+
+!|Check|that the field|vtlVin|is in error|False|
+|Check|that the field|txtChassis                    |is in error|False|
+|Check|that the field|txtModel                      |is in error|False|
+|Check|that the field|cboMeterType                  |is in error|False|
+|Check|that the field|txtMeterReading               |is in error|False|
+|Check|that the field|txtEngineHours                |is in error|False|
+|Check|that the field|grpAction                     |is in error|False|
+|Check|that the field|grpClaimType                  |is in error|False|
+|Check|that the field|cboClaimCategory              |is in error|True |
+|Check|that the field|cboDivisionCode               |is in error|False|
+|Check|that the field|txtPriorApprovalID            |is in error|False|
+|Check|that the field|txtServiceMaterialSerialNumber|is in error|False|
+|Check|that the field|txtCampaignCode        |is in error|False|
+
+!|Inspect form fields|
+|vtlVin|txtChassis|txtModel|cboMeterType|txtMeterReading|txtEngineHours|grpAction|grpClaimType|cboClaimCategory|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
+|      |          |        |            |               |              |Draft    |OEM         |                |               |False  |                  |                              |                      |
+
+
+'''Inspect Failure Group Box for a New Claim'''
+
+!|Check|that the field|txtCausalPartNumber|is visible|True|
+|Check|that the field|txtCausalPartMake            |is visible|True|
+|Check|that the field|txtCausalPartModelNumber     |is visible|True|
+|Check|that the field|txtCausalPartSerialNumber    |is visible|True|
+|Check|that the field|cboVMRSCausalCode            |is visible|True|
+|Check|that the field|txtCausalPartMileage         |is visible|True|
+|Check|that the field|cboCausalPartMeter           |is visible|True|
+|Check|that the field|txtSellingDealer             |is visible|True|
+|Check|that the field|txtInvoiceNumber             |is visible|True|
+|Check|that the field|txtWarrantablePartNumber     |is visible|True|
+|Check|that the field|txtDiagnosticCase            |is visible|True|
+|Check|that the field|txtFailedAssemblyNumber      |is visible|True|
+|Check|that the field|txtSupportCaseNumber         |is visible|True|
+|Check|that the field|cboPositionCode              |is visible|True|
+|Check|that the field|cboSequence                  |is visible|True|
+|Check|that the field|cboVMRSCustomerConcern       |is visible|True|
+|Check|that the field|cboVMRSCorrectiveAction      |is visible|True|
+|Check|that the field|vtlVMRSFailureLocation       |is visible|True|
+|Check|that the field|txtFailureLocationDescription|is visible|True|
+
+!|Check|that the field|txtCausalPartNumber|is enabled|True|
+|Check|that the field|txtCausalPartMake            |is enabled|True|
+|Check|that the field|txtCausalPartModelNumber     |is enabled|True|
+|Check|that the field|txtCausalPartSerialNumber    |is enabled|True|
+|Check|that the field|cboVMRSCausalCode            |is enabled|True|
+|Check|that the field|txtCausalPartMileage         |is enabled|True|
+|Check|that the field|cboCausalPartMeter           |is enabled|True|
+|Check|that the field|txtSellingDealer             |is enabled|True|
+|Check|that the field|txtInvoiceNumber             |is enabled|True|
+|Check|that the field|txtWarrantablePartNumber     |is enabled|True|
+|Check|that the field|txtDiagnosticCase            |is enabled|True|
+|Check|that the field|txtFailedAssemblyNumber      |is enabled|True|
+|Check|that the field|txtSupportCaseNumber         |is enabled|True|
+|Check|that the field|cboPositionCode              |is enabled|True|
+|Check|that the field|cboSequence                  |is enabled|True|
+|Check|that the field|cboVMRSCustomerConcern       |is enabled|True|
+|Check|that the field|cboVMRSCorrectiveAction      |is enabled|True|
+|Check|that the field|vtlVMRSFailureLocation       |is enabled|True|
+|Check|that the field|txtFailureLocationDescription|is enabled|False|
+
+!|Check|that the field|txtCausalPartNumber|is in error|False|
+|Check|that the field|txtCausalPartMake            |is in error|False|
+|Check|that the field|txtCausalPartModelNumber     |is in error|False|
+|Check|that the field|txtCausalPartSerialNumber    |is in error|False|
+|Check|that the field|cboVMRSCausalCode            |is in error|False|
+|Check|that the field|txtCausalPartMileage         |is in error|False|
+|Check|that the field|cboCausalPartMeter           |is in error|False|
+|Check|that the field|txtSellingDealer             |is in error|False|
+|Check|that the field|txtInvoiceNumber             |is in error|False|
+|Check|that the field|txtWarrantablePartNumber     |is in error|False|
+|Check|that the field|txtDiagnosticCase            |is in error|False|
+|Check|that the field|txtFailedAssemblyNumber      |is in error|False|
+|Check|that the field|txtSupportCaseNumber         |is in error|False|
+|Check|that the field|cboPositionCode              |is in error|False|
+|Check|that the field|cboSequence                  |is in error|False|
+|Check|that the field|cboVMRSCustomerConcern       |is in error|False|
+|Check|that the field|cboVMRSCorrectiveAction      |is in error|False|
+|Check|that the field|vtlVMRSFailureLocation       |is in error|False|
+|Check|that the field|txtFailureLocationDescription|is in error|False|
+
+!|Check|that the DateTimePicker|Retail Sales Date|Is Checked|False|
+
+!|Inspect form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|cboVMRSCausalCode|txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber|txtSupportCaseNumber|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|txtFailureLocationDescription|
+|                   |                 |                        |                         |                 |                    |                  |                |                |                        |                 |                       |                    |               |           |                      |                       |                      |                             |
+
+!|Check|that the action|Save|state is|False|
+
+!|Set form fields|
+|txtCompanyName|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|cboClaimCategory|Go! |
+|K & J Trucking|Car1     |6520|1002                  |Truck|True|
+
+!|Set form fields|
+|txtChassis|cboMeterType|txtMeterReading|Go!|
+|ABCD1234|Miles|150000|True|
+
+!|Check|that the action|Save|state is|True|
+
+!|Perform action|Save|
+
+!|Close form|
+
+!|Click ToolBar Button|New|Menu Item|PACCAR - PRW|
+
+!anchor 9
+
+'''Inspect if fields are visible, enabled, and required. - Acion = Submit'''
+
+!|Check|that the field|vtlOwningCustomer|is visible|True|
+|Check|that the field|txtCompanyName|is visible|True|
+|Check|that the field|txtPhone      |is visible|True|
+|Check|that the field|txtAddress1   |is visible|True|
+|Check|that the field|txtAddress2   |is visible|True|
+|Check|that the field|txtCity       |is visible|True|
+|Check|that the field|vtlRegion     |is visible|True|
+|Check|that the field|txtPostalCode |is visible|True|
+|Check|that the field|txtCountry    |is visible|True|
+|Check|that the field|txtCounty     |is visible|True|
+
+!|Check|that the field|vtlOwningCustomer|is enabled|True|
+|Check|that the field|txtCompanyName|is enabled|True|
+|Check|that the field|txtPhone      |is enabled|True|
+|Check|that the field|txtAddress1   |is enabled|True|
+|Check|that the field|txtAddress2   |is enabled|True|
+|Check|that the field|txtCity       |is enabled|True|
+|Check|that the field|vtlRegion     |is enabled|True|
+|Check|that the field|txtPostalCode |is enabled|True|
+|Check|that the field|txtCountry    |is enabled|True|
+|Check|that the field|txtCounty     |is enabled|True|
+
+!|Check|that the field|vtlOwningCustomer|is in error|False|
+|Check|that the field|txtCompanyName|is in error|True |
+|Check|that the field|txtPhone      |is in error|False|
+|Check|that the field|txtAddress1   |is in error|False|
+|Check|that the field|txtAddress2   |is in error|False|
+|Check|that the field|txtCity       |is in error|False|
+|Check|that the field|vtlRegion     |is in error|False|
+|Check|that the field|txtPostalCode |is in error|False|
+|Check|that the field|txtCountry    |is in error|False|
+|Check|that the field|txtCounty     |is in error|False|
+
+'''All fields should be Blank in a New claim'''
+
+!|Inspect form fields|
+|vtlOwningCustomer|txtCompanyName|txtPhone|txtAddress1|txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|
+|                 |              |        |           |           |       |         |             |          |         |
+
+
+!|Check|that the field|vtlBranch|is visible|True|
+|Check|that the field|cboClaimStatus        |is visible|True|
+|Check|that the field|vtlOriginalRepairOrder|is visible|True|
+|Check|that the field|txtClaimNumber        |is visible|True|
+|Check|that the field|vtlWarrantyRepairOrder|is visible|True|
+|Check|that the field|txtDealerCode         |is visible|True|
+
+!|Check|that the field|vtlBranch|is enabled|True|
+|Check|that the field|cboClaimStatus        |is enabled|True |
+|Check|that the field|vtlOriginalRepairOrder|is enabled|False |
+|Check|that the field|txtClaimNumber        |is enabled|False|
+|Check|that the field|vtlWarrantyRepairOrder|is enabled|True |
+|Check|that the field|txtDealerCode         |is enabled|True |
+
+!|Check|that the field|vtlBranch|is in error|True|
+|Check|that the field|cboClaimStatus        |is in error|False |
+|Check|that the field|vtlOriginalRepairOrder|is in error|False|
+|Check|that the field|txtClaimNumber        |is in error|False|
+|Check|that the field|vtlWarrantyRepairOrder|is in error|True|
+|Check|that the field|txtDealerCode         |is in error|True|
+
+!|Check|that the DateTimePicker|Open Date|Is Checked|True|
+
+!|Check|that the DateTimePicker|Closed Date|Is Checked|True|
+
+!|Inspect form fields|
+|vtlBranch|cboClaimStatus|vtlOriginalRepairOrder|txtClaimNumber|vtlWarrantyRepairOrder|txtDealerCode|Open Date |Closed Date|
+|         |Open          |                      |              |                      |             |04/10/2013|04/10/2013|
+
+!|Inspect Dropdown Contents|cboClaimStatus|
+|value|
+|Open|
+|Closed|
+|Finalized|
+
+
+'''Inspect Summary Group Box for a New Claim'''
+
+!|Inspect form fields|
+|lblParts|lblLabor|lblMiscellaneous|lblClaimTot|
+|Parts:|Labor:|Miscellaneous:|Claim Total:|
+
+'''Inspect Chassis/Claim Group Box for a New Claim'''
+
+!|Check|that the field|vtlVin|is visible|True|
+|Check|that the field|txtChassis                    |is visible|True|
+|Check|that the field|txtModel                      |is visible|True|
+|Check|that the field|cboMeterType                  |is visible|True|
+|Check|that the field|txtMeterReading               |is visible|True|
+|Check|that the field|txtEngineHours                |is visible|True|
+|Check|that the field|grpAction                     |is visible|True|
+|Check|that the field|grpClaimType                  |is visible|True|
+|Check|that the field|cboClaimCategory              |is visible|True|
+|Check|that the field|cboDivisionCode               |is visible|True|
+|Check|that the field|chkDSFW                       |is visible|True|
+|Check|that the field|txtPriorApprovalID            |is visible|True|
+|Check|that the field|txtServiceMaterialSerialNumber|is visible|True|
+|Check|that the field|txtCampaignCode        |is visible|True|
+
+!|Check|that the field|vtlVin|is enabled|True|
+|Check|that the field|txtChassis                    |is enabled|True|
+|Check|that the field|txtModel                      |is enabled|True|
+|Check|that the field|cboMeterType                  |is enabled|True|
+|Check|that the field|txtMeterReading               |is enabled|True|
+|Check|that the field|txtEngineHours                |is enabled|True|
+|Check|that the field|grpAction                     |is enabled|True|
+|Check|that the field|grpClaimType                  |is enabled|True|
+|Check|that the field|cboClaimCategory              |is enabled|True|
+|Check|that the field|cboDivisionCode               |is enabled|True|
+|Check|that the field|chkDSFW                       |is enabled|True|
+|Check|that the field|txtPriorApprovalID            |is enabled|True|
+|Check|that the field|txtServiceMaterialSerialNumber|is enabled|True|
+|Check|that the field|txtCampaignCode        |is enabled|True|
+
+!|Check|that the field|vtlVin|is in error|False|
+|Check|that the field|txtChassis                    |is in error|False|
+|Check|that the field|txtModel                      |is in error|False|
+|Check|that the field|cboMeterType                  |is in error|False|
+|Check|that the field|txtMeterReading               |is in error|False|
+|Check|that the field|txtEngineHours                |is in error|False|
+|Check|that the field|grpAction                     |is in error|False|
+|Check|that the field|grpClaimType                  |is in error|False|
+|Check|that the field|cboClaimCategory              |is in error|True |
+|Check|that the field|cboDivisionCode               |is in error|False|
+|Check|that the field|txtPriorApprovalID            |is in error|False|
+|Check|that the field|txtServiceMaterialSerialNumber|is in error|False|
+|Check|that the field|txtCampaignCode        |is in error|False|
+
+!|Inspect form fields|
+|vtlVin|txtChassis|txtModel|cboMeterType|txtMeterReading|txtEngineHours|grpAction|grpClaimType|cboClaimCategory|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
+|      |          |        |            |               |              |Submit   |OEM         |                |               |False  |                  |                              |                      |
+
+
+'''Inspect Failure Group Box for a New Claim'''
+
+!|Check|that the field|txtCausalPartNumber|is visible|True|
+|Check|that the field|txtCausalPartMake            |is visible|True|
+|Check|that the field|txtCausalPartModelNumber     |is visible|True|
+|Check|that the field|txtCausalPartSerialNumber    |is visible|True|
+|Check|that the field|cboVMRSCausalCode            |is visible|True|
+|Check|that the field|txtCausalPartMileage         |is visible|True|
+|Check|that the field|cboCausalPartMeter           |is visible|True|
+|Check|that the field|txtSellingDealer             |is visible|True|
+|Check|that the field|txtInvoiceNumber             |is visible|True|
+|Check|that the field|txtWarrantablePartNumber     |is visible|True|
+|Check|that the field|txtDiagnosticCase            |is visible|True|
+|Check|that the field|txtFailedAssemblyNumber      |is visible|True|
+|Check|that the field|txtSupportCaseNumber         |is visible|True|
+|Check|that the field|cboPositionCode              |is visible|True|
+|Check|that the field|cboSequence                  |is visible|True|
+|Check|that the field|cboVMRSCustomerConcern       |is visible|True|
+|Check|that the field|cboVMRSCorrectiveAction      |is visible|True|
+|Check|that the field|vtlVMRSFailureLocation       |is visible|True|
+|Check|that the field|txtFailureLocationDescription|is visible|True|
+
+!|Check|that the field|txtCausalPartNumber|is enabled|True|
+|Check|that the field|txtCausalPartMake            |is enabled|True|
+|Check|that the field|txtCausalPartModelNumber     |is enabled|True|
+|Check|that the field|txtCausalPartSerialNumber    |is enabled|True|
+|Check|that the field|cboVMRSCausalCode            |is enabled|True|
+|Check|that the field|txtCausalPartMileage         |is enabled|True|
+|Check|that the field|cboCausalPartMeter           |is enabled|True|
+|Check|that the field|txtSellingDealer             |is enabled|True|
+|Check|that the field|txtInvoiceNumber             |is enabled|True|
+|Check|that the field|txtWarrantablePartNumber     |is enabled|True|
+|Check|that the field|txtDiagnosticCase            |is enabled|True|
+|Check|that the field|txtFailedAssemblyNumber      |is enabled|True|
+|Check|that the field|txtSupportCaseNumber         |is enabled|True|
+|Check|that the field|cboPositionCode              |is enabled|True|
+|Check|that the field|cboSequence                  |is enabled|True|
+|Check|that the field|cboVMRSCustomerConcern       |is enabled|True|
+|Check|that the field|cboVMRSCorrectiveAction      |is enabled|True|
+|Check|that the field|vtlVMRSFailureLocation       |is enabled|True|
+|Check|that the field|txtFailureLocationDescription|is enabled|False|
+
+!|Check|that the field|txtCausalPartNumber|is in error|True|
+|Check|that the field|txtCausalPartMake            |is in error|False|
+|Check|that the field|txtCausalPartModelNumber     |is in error|False|
+|Check|that the field|txtCausalPartSerialNumber    |is in error|False|
+|Check|that the field|cboVMRSCausalCode            |is in error|True|
+|Check|that the field|txtCausalPartMileage         |is in error|False|
+|Check|that the field|cboCausalPartMeter           |is in error|False|
+|Check|that the field|txtSellingDealer             |is in error|False|
+|Check|that the field|txtInvoiceNumber             |is in error|False|
+|Check|that the field|txtWarrantablePartNumber     |is in error|False|
+|Check|that the field|txtDiagnosticCase            |is in error|False|
+|Check|that the field|txtFailedAssemblyNumber      |is in error|False|
+|Check|that the field|txtSupportCaseNumber         |is in error|False|
+|Check|that the field|cboPositionCode              |is in error|False|
+|Check|that the field|cboSequence                  |is in error|False|
+|Check|that the field|cboVMRSCustomerConcern       |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction      |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation       |is in error|True|
+|Check|that the field|txtFailureLocationDescription|is in error|False|
+
+
+!|Check|that the DateTimePicker|Retail Sales Date|Is Checked|False|
+
+!|Inspect form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|cboVMRSCausalCode|txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber|txtSupportCaseNumber|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|txtFailureLocationDescription|
+|                   |                 |                        |                         |                 |                    |                  |                |                |                        |                 |                       |                    |               |           |                      |                       |                      |                             |
+
+!anchor 7
+
+'''Setting specific Claim Categories should make different fields required'''
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|Truck|True|
+
+!|Check|that the field|txtChassis|is in error|True|
+|Check|that the field|txtModel                |is in error|False|
+|Check|that the field|cboMeterType            |is in error|True|
+|Check|that the field|txtMeterReading         |is in error|True|
+|Check|that the field|txtEngineHours          |is in error|False|
+|Check|that the field|cboDivisionCode         |is in error|False|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|False|
+|Check|that the field|txtInvoiceNumber        |is in error|False|
+|Check|that the field|txtWarrantablePartNumber|is in error|False|
+|Check|that the field|txtFailedAssemblyNumber |is in error|True|
+|Check|that the field|cboPositionCode         |is in error|True|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|Engine|True|
+
+!|Check|that the field|txtChassis|is in error|True|
+|Check|that the field|txtModel                |is in error|False|
+|Check|that the field|cboMeterType            |is in error|True|
+|Check|that the field|txtMeterReading         |is in error|True|
+|Check|that the field|txtEngineHours          |is in error|True|
+|Check|that the field|cboDivisionCode         |is in error|False|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|False|
+|Check|that the field|txtInvoiceNumber        |is in error|False|
+|Check|that the field|txtWarrantablePartNumber|is in error|False|
+|Check|that the field|txtFailedAssemblyNumber |is in error|True|
+|Check|that the field|cboPositionCode         |is in error|True|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|Paint|True|
+
+!|Check|that the field|txtChassis|is in error|True|
+|Check|that the field|txtModel                |is in error|False|
+|Check|that the field|cboMeterType            |is in error|True|
+|Check|that the field|txtMeterReading         |is in error|True|
+|Check|that the field|txtEngineHours          |is in error|False|
+|Check|that the field|cboDivisionCode         |is in error|False|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|False|
+|Check|that the field|txtInvoiceNumber        |is in error|False|
+|Check|that the field|txtWarrantablePartNumber|is in error|False|
+|Check|that the field|txtFailedAssemblyNumber |is in error|True|
+|Check|that the field|cboPositionCode         |is in error|True|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|PACCAR Transmission|True|
+
+!|Check|that the field|txtChassis|is in error|True|
+|Check|that the field|txtModel                |is in error|False|
+|Check|that the field|cboMeterType            |is in error|True|
+|Check|that the field|txtMeterReading         |is in error|True|
+|Check|that the field|txtEngineHours          |is in error|False|
+|Check|that the field|cboDivisionCode         |is in error|False|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|False|
+|Check|that the field|txtInvoiceNumber        |is in error|False|
+|Check|that the field|txtWarrantablePartNumber|is in error|False|
+|Check|that the field|txtFailedAssemblyNumber |is in error|True|
+|Check|that the field|cboPositionCode         |is in error|True|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|PACCAR Steer Axle|True|
+
+!|Check|that the field|txtChassis|is in error|True|
+|Check|that the field|txtModel                |is in error|False|
+|Check|that the field|cboMeterType            |is in error|True|
+|Check|that the field|txtMeterReading         |is in error|True|
+|Check|that the field|txtEngineHours          |is in error|False|
+|Check|that the field|cboDivisionCode         |is in error|False|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|False|
+|Check|that the field|txtInvoiceNumber        |is in error|False|
+|Check|that the field|txtWarrantablePartNumber|is in error|False|
+|Check|that the field|txtFailedAssemblyNumber |is in error|True|
+|Check|that the field|cboPositionCode         |is in error|True|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|PACCAR Rear Axle|True|
+
+!|Check|that the field|txtChassis|is in error|True|
+|Check|that the field|txtModel                |is in error|False|
+|Check|that the field|cboMeterType            |is in error|True|
+|Check|that the field|txtMeterReading         |is in error|True|
+|Check|that the field|txtEngineHours          |is in error|False|
+|Check|that the field|cboDivisionCode         |is in error|False|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|False|
+|Check|that the field|txtInvoiceNumber        |is in error|False|
+|Check|that the field|txtWarrantablePartNumber|is in error|False|
+|Check|that the field|txtFailedAssemblyNumber |is in error|True|
+|Check|that the field|cboPositionCode         |is in error|True|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|grpClaimType|Go!|
+|Part|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|PACCAR Part|True|
+
+!|Check|that the field|txtChassis|is in error|False|
+|Check|that the field|txtModel                |is in error|True|
+|Check|that the field|cboMeterType            |is in error|False|
+|Check|that the field|txtMeterReading         |is in error|False|
+|Check|that the field|txtEngineHours          |is in error|False|
+|Check|that the field|cboDivisionCode         |is in error|True|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|True|
+|Check|that the field|txtInvoiceNumber        |is in error|True|
+|Check|that the field|txtWarrantablePartNumber|is in error|True|
+|Check|that the field|txtFailedAssemblyNumber |is in error|False|
+|Check|that the field|cboPositionCode         |is in error|False|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|Engine Part|True|
+
+!|Check|that the field|txtChassis|is in error|True|
+|Check|that the field|txtModel                |is in error|False|
+|Check|that the field|cboMeterType            |is in error|True|
+|Check|that the field|txtMeterReading         |is in error|True|
+|Check|that the field|txtEngineHours          |is in error|True|
+|Check|that the field|cboDivisionCode         |is in error|False|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|True|
+|Check|that the field|txtInvoiceNumber        |is in error|True|
+|Check|that the field|txtWarrantablePartNumber|is in error|True|
+|Check|that the field|txtFailedAssemblyNumber |is in error|True|
+|Check|that the field|cboPositionCode         |is in error|True|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|cboClaimCategory|Go!|
+|New Defective Part|True|
+
+!|Check|that the field|txtChassis|is in error|False|
+|Check|that the field|txtModel                |is in error|True|
+|Check|that the field|cboMeterType            |is in error|False|
+|Check|that the field|txtMeterReading         |is in error|False|
+|Check|that the field|txtEngineHours          |is in error|False|
+|Check|that the field|cboDivisionCode         |is in error|True|
+|Check|that the field|txtCausalPartNumber     |is in error|True|
+|Check|that the field|txtSellingDealer        |is in error|False|
+|Check|that the field|txtInvoiceNumber        |is in error|False|
+|Check|that the field|txtWarrantablePartNumber|is in error|False|
+|Check|that the field|txtFailedAssemblyNumber |is in error|False|
+|Check|that the field|cboPositionCode         |is in error|False|
+|Check|that the field|cboVMRSCustomerConcern  |is in error|True|
+|Check|that the field|cboVMRSCorrectiveAction |is in error|True|
+|Check|that the field|vtlVMRSFailureLocation  |is in error|True|
+
+!|Set form fields|
+|grpClaimType|Go!|
+|OEM|True|
+
+!|Set form fields|
+|vtlOwningCustomer|Go!|
+|50000|True|
+
+!|Set form fields|
+|vtlBranch|Go!|
+|Car1|True|
+
+!|Set form fields|
+|vtlWarrantyRepairOrder|Go!|
+|1003|True|
+
+!|Click Vtl Button|vtlVin|
+
+!|Set selection form|Unit|
+
+!|Inspect Data Grid|_dataGridInternal|
+|Branch|Customer|
+|Car1|50000|
+|Car1|50000|
+|Car1|50000|
+|Car1|50000|
+|Car1|50000|
+
+!|Select grid row|DataGridBase1|where|VIN|equals|12345678901234020|
+
+!|Click button|cmdSelect|
+
+!|Inspect Dropdown Contents|Meter Type|
+|Value|
+||
+|Miles|
+|Kilometers|
+
+!|Set form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|Go!|
+|Miles|1000|14|True|
+
+!|Inspect Dropdown Contents|Claim Category|
+|value|
+||
+|Truck|
+|Engine|
+|Paint|
+|PACCAR Transmission|
+|PACCAR Steer Axle|
+|PACCAR Rear Axle|
+
+!|Set form fields|
+|grpClaimType|Go!|
+|Part|True|
+
+!|Inspect Dropdown Contents|Claim Category|
+|value|
+||
+|PACCAR Part|
+|Engine Part|
+|New Defective Part|
+
+!|Set form fields|
+|grpClaimType|cboClaimCategory|Go!|
+|OEM|PACCAR Transmission|True|
+
+!|Inspect Dropdown Contents|cboDivisionCode|
+|value|
+||
+|K - Kenworth|
+|P - Peterbilt|
+|F - Kenmex|
+|B - PACCAR Parts|
+
+!|Set form fields|
+|cboDivisionCode |chkDSFW|txtPriorApprovalID    |txtServiceMaterialSerialNumber|txtCampaignCode        |Go! |
+|B - PACCAR Parts|True   |Prior Approval ID 123!|SMSN 789$!                    ||True|
+
+
+!|Set form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|Go!|
+|P5678-963|CPM Make1-A|CPMN Model1-A|CPSN SN-7891011-A|True|
+
+!|Inspect Dropdown Contents|cboVMRSCausalCode|
+|value|
+||
+|00 - No Failure|
+|01 - Battered, Hammered  					|
+|02 - Burned, Scorched, Melted, Blistered   |
+|03 - Crushed, Pinched, Folded, Crimped     |
+|04 - Dented                                |
+|05 - Elongated, Stretched                  |
+|06 - Faded, Dulled Finish                  |
+|07 - Improper Fluid Level                  |
+|08 - Improper Electrical Value             |
+|09 - Insufficient Clearance, Rubs          |
+|10 - Bent                                  |
+|11 - Binds, Sticks                         |
+|12 - Broken                                |
+|13 - Chipped, Pitted                       |
+|14 - Cracked                               |
+|15 - Foreign Material Present              |
+|16 - Glazed                                |
+|17 - Insufficient Lubrication              |
+|18 - Leaking                               |
+|19 - Loose                                 |
+|20 - Lubrication or Oil Soaked             |
+|21 - Misadjusted                           |
+|22 - Misaligned                            |
+|23 - Not Connected                         |
+|24 - Not Drilled                           |
+|25 - Out of Balance                        |
+|26 - Out of Round                          |
+|27 - Overheated                            |
+|28 - Part Improperly Installed             |
+|29 - Part Omitted                          |
+|30 - Poor Fit, Wrong Size                  |
+|31 - Poor Metal Finish                     |
+|32 - Porosity                              |
+|33 - Registers Incorrectly                 |
+|34 - Rough                                 |
+|35 - Rusted or Corroded                    |
+|36 - Scored or Scratched                   |
+|37 - Seized                                |
+|38 - Shorted                               |
+|39 - Soiled or Stained                     |
+|40 - Stripped                              |
+|41 - Torn, Punctured or Split              |
+|42 - Warped, Twisted                       |
+|43 - Weak                                  |
+|44 - Worn                                  |
+|45 - Wrong Part                            |
+|46 - Lost or Missing                       |
+|47 - High Pressure                         |
+|48 - Low Pressure                          |
+|49 - Cut or Rubbed                         |
+|50 - Hard or Brittle                       |
+|51 - Inoperative                           |
+|52 - Leaking Air                           |
+|53 - Leaking Compression                   |
+|54 - Leaking Exhaust                       |
+|55 - Leaking Fuel                          |
+|56 - Leaking Oil                           |
+|57 - Leaking Refrigerant                   |
+|58 - Leaking Water                         |
+|59 - Moisture, Condensation                |
+|60 - Noisy                                 |
+|61 - Oil Passing                           |
+|62 - Improper Fabrication                  |
+|63 - Improper Weld                         |
+|64 - Plugged                               |
+|65 - Excessive Clearance                   |
+|66 - Vibration                             |
+|67 - Spun                                  |
+|68 - Brightwork / Chrome Defect            |
+|69 - Insufficient Ground                   |
+|70 - Underspray                            |
+|71 - Overspray                             |
+|72 - Peeled, Flaked, Bubbled               |
+|73 - Orange Peel                           |
+|74 - Runs, Sags                            |
+|75 - Thin Paint or Unpainted               |
+|76 - Open Circuit                          |
+|77 - Miswired                              |
+|78 - Perforation                           |
+|79 - ISSUED OTC TO DRIVER                  |
+|80 - Underinflated                         |
+|81 - Flat                                  |
+|82 - Needs Repair                          |
+|83 - Mismatched Height/Tread               |
+|84 - Irregular Wear                        |
+|85 - Curbed                                |
+|86 - Brake Skid                            |
+|87 - Chain Damage                          |
+|88 - Vehicle Mechanical Damage             |
+|89 - LEAKING GREASE                        |
+|90 - ABUSE                                 |
+|91 - ACCIDENT                              |
+|92 - PROGRESSIVE DAMAGE                    |
+|93 - Incorrectly Programmed                |
+|94 - Leaking Coolant                       |
+|95 - Reprogram                             |
+|96 - Paint, Primer Peeling from Part       |
+|97 - Paint, Paint Peeling from Primer      |
+|98 - Wrong Color                           |
+|99 - Replaced Before Failure               |
+|A1 - Campaign                              |
+|A3 - SHORT TO GROUND                       |
+|A4 - CROSS-SHORT                           |
+|A5 - CONNECTOR NOT MATED                   |
+|A6 - UNSEATED FEMALE TERMINAL              |
+|A7 - UNSEATED MALE TERMINAL                |
+|A8 - SPREAD FEMALE TERMINAL                |
+|CM - PREVENTATIVE MAINTENANCE              |
+|F1 - Cause Code Unknown                    |
+|NX - EXT NEXT DPF EXCHANGE                 |
+|W1 - MISSING SEAL/PLUG                     |
+|W2 - PAINT ON TERMINAL                     |
+|W3 - UNSPECIFIED ROOT CAUSE                |
+|W4 - DEFECTIVE CRIMP                       |
+|ZV - COMMUNICATION ERROR                   |
+|ZW - IMPROPER FLOW                         |
+|ZX - SHIFTS IMPROPERLY                     |
+|ZY - SOFTWARE - SEVERE DUTY CYCLE          |
+|ZZ - PER DETROIT                           |
+
+
+!|Set form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |Go! |
+|07 - Improper Fluid Level|5002                |Miles             |5678           |Inv542121       |WPNumber5-A  |DiagnosticCase1  |FAN529-A|SCaseNum11-A|True|
+
+
+!|Inspect Dropdown Contents|cboPositionCode|
+|value|
+||
+|00 - Not Applicable                          |
+|01 - Front                                   |
+|02 - Front Left                              |
+|03 - Front Left Bottom/Lower                 |
+|04 - Front Left Bottom/Lower Inner           |
+|05 - Front Left Bottom/Lower Center          |
+|06 - Front Left Bottom/Lower Outer           |
+|07 - Front Left Bottom/Lower Inner and Outer |
+|08 - Front Left Bottom/Lower All             |
+|09 - Front Left Top/Upper                    |
+|10 - Front Left Top/Upper Inner              |
+|11 - Front Left Top/Upper Center             |
+|12 - Front Left Top/Upper Outer              |
+|13 - Front Left Top/Upper Inner and Outer    |
+|14 - Front Left Top/Upper All                |
+|15 - Front Left Inner                        |
+|16 - Front Left Center                       |
+|17 - Front Left Outer                        |
+|18 - Front Left Inner and Outer              |
+|19 - Front Left All                          |
+|20 - Front Right                             |
+|21 - Front Right Bottom/Lower                |
+|22 - Front Right Bottom/Lower Inner          |
+|23 - Front Right Bottom/Lower Center         |
+|24 - Front Right Bottom/Lower Outer          |
+|25 - Front Right Bottom/Lower Inner and Outer|
+|26 - Front Right Bottom/Lower All            |
+|27 - Front Right Top/Upper                   |
+|28 - Front Right Top/Upper Inner             |
+|29 - Front Right Top/Upper Center            |
+|30 - Front Right Top/Upper Outer             |
+|31 - Front Right Top/Upper Inner and Outer   |
+|32 - Front Right Top/Upper All               |
+|33 - Front Right Inner                       |
+|34 - Front Right Center                      |
+|35 - Front Right Outer                       |
+|36 - Front Right Inner and Outer             |
+|37 - Front Right All                         |
+|38 - Front Bottom/Lower                      |
+|39 - Front Bottom/Lower Inner                |
+|40 - Front Bottom/Lower Center               |
+|41 - Front Bottom/Lower Outer                |
+|42 - Front Bottom/Lower Inner and Outer      |
+|43 - Front Bottom/Lower All                  |
+|44 - Front Top/Upper                         |
+|45 - Front Top/Upper Inner                   |
+|46 - Front Top/Upper Center                  |
+|47 - Front Top/Upper Outer                   |
+|48 - Front Top/Upper Inner and Outer         |
+|49 - Front Top/Upper All                     |
+|50 - Front Inner                             |
+|51 - Front Center                            |
+|52 - Front Outer                             |
+|53 - Front Inner and Outer                   |
+|54 - Front All                               |
+|55 - Rear                                    |
+|56 - Rear Left                               |
+|57 - Rear Left Bottom/Lower                  |
+|58 - Rear Left Bottom/Lower Inner            |
+|59 - Rear Left Bottom/Lower Center           |
+|60 - Rear Left Bottom/Lower Outer            |
+|61 - Rear Left Bottom/Lower Inner and Outer  |
+|62 - Rear Left Bottom/Lower All              |
+|63 - Rear Left Top/Upper                     |
+|64 - Rear Left Top/Upper Inner               |
+|65 - Rear Left Top/Upper Center              |
+|66 - Rear Left Top/Upper Outer               |
+|67 - Rear Left Top/Upper Inner and Outer     |
+|68 - Rear Left Top/Upper All                 |
+|69 - Rear Left Inner                         |
+|70 - Rear Left Center                        |
+|71 - Rear Left Outer                         |
+|72 - Rear Left Inner and Outer               |
+|73 - Rear Left All                           |
+|74 - Rear Right                              |
+|75 - Rear Right Bottom/Lower                 |
+|76 - Rear Right Bottom/Lower Inner           |
+|77 - Rear Right Bottom/Lower Center          |
+|78 - Rear Right Bottom/Lower Outer           |
+|79 - Rear Right Bottom/Lower Inner and Outer |
+|80 - Rear Right Bottom/Lower All             |
+|81 - Rear Right Top/Upper                    |
+|82 - Rear Right Top/Upper Inner              |
+|83 - Rear Right Top/Upper Center             |
+|84 - Rear Right Top/Upper Outer              |
+|85 - Rear Right Top/Upper Inner and Outer    |
+|86 - Rear Right Top/Upper All                |
+|87 - Rear Right Inner                        |
+|88 - Rear Right Center                       |
+|89 - Rear Right Outer                        |
+|90 - Rear Right Inner and Outer              |
+|91 - Rear Right All                          |
+|92 - Rear Bottom/Lower                       |
+|93 - Rear Bottom/Lower Inner                 |
+|94 - Rear Bottom/Lower Center                |
+|95 - Rear Bottom/Lower Outer                 |
+|96 - Rear Bottom/Lower Inner and Outer       |
+|97 - Rear Bottom/Lower All                   |
+|98 - Rear Top/Upper                          |
+|99 - Rear Top/Upper Inner                    |
+|A1 - Rear Top/Upper Center                   |
+|A2 - Rear Top/Upper Outer                    |
+|A3 - Rear Top/Upper Inner and Outer          |
+|A4 - Rear Top/Upper All                      |
+|A5 - Rear Inner                              |
+|A6 - Rear Center                             |
+|A7 - Rear Outer                              |
+|A8 - Rear Inner and Outer                    |
+|A9 - Rear All                                |
+|B1 - Left                                    |
+|B2 - Left Bottom/Lower                       |
+|B3 - Left Bottom/Lower Inner                 |
+|B4 - Left Bottom/Lower Center                |
+|B5 - Left Bottom/Lower Outer                 |
+|B6 - Left Bottom/Lower Inner and Outer       |
+|B7 - Left Bottom/Lower All                   |
+|B8 - Left Top/Upper                          |
+|B9 - Left Top/Upper Inner                    |
+|C1 - Left Top/Upper Center                   |
+|C2 - Left Top/Upper Outer                    |
+|C3 - Left Top/Upper Inner and Outer          |
+|C4 - Left Top/Upper All                      |
+|C5 - Left Inner                              |
+|C6 - Left Center                             |
+|C7 - Left Outer                              |
+|C8 - Left Inner and Outer                    |
+|C9 - Left All                                |
+|D1 - Right                                   |
+|D2 - Right Bottom/Lower                      |
+|D3 - Right Bottom/Lower Inner                |
+|D4 - Right Bottom/Lower Center               |
+|D5 - Right Bottom/Lower Outer                |
+|D6 - Right Bottom/Lower Inner and Outer      |
+|D7 - Right Bottom/Lower All                  |
+|D8 - Right Top/Upper                         |
+|D9 - Right Top/Upper Inner                   |
+|E1 - Right Top/Upper Center                  |
+|E2 - Right Top/Upper Outer                   |
+|E3 - Right Top/Upper Inner and Outer         |
+|E4 - Right Top/Upper All                     |
+|E5 - Right Inner                             |
+|E6 - Right Center                            |
+|E7 - Right Outer                             |
+|E8 - Right Inner and Outer                   |
+|E9 - Right All                               |
+|F1 - Bottom/Lower                            |
+|F2 - Bottom/Lower Inner                      |
+|F3 - Bottom/Lower Center                     |
+|F4 - Bottom/Lower Outer                      |
+|F5 - Bottom/Lower Inner and Outer            |
+|F6 - Bottom/Lower All                        |
+|F7 - Top/Upper                               |
+|F8 - Top/Upper Inner                         |
+|F9 - Top/Upper Center                        |
+|G1 - Top/Upper Outer                         |
+|G2 - Top/Upper Inner and Outer               |
+|G3 - Top/Upper All                           |
+|G4 - Inner                                   |
+|G5 - Center                                  |
+|G6 - Outer                                   |
+|G7 - Inner and Outer                         |
+|G8 - All                                     |
+|G9 - Circular                                |
+
+
+!|Inspect Dropdown Contents|cboSequence|
+|value|
+||
+|00 - Not Applicable|
+|01 - Position 1 | 
+|02 - Position 2 | 
+|03 - Position 3 | 
+|04 - Position 4 | 
+|05 - Position 5 | 
+|06 - Position 6 | 
+|07 - Position 7 | 
+|08 - Position 8 | 
+|09 - Position 9 | 
+|10 - Position 10 | 
+
+!|Inspect Dropdown Contents|cboVMRSCustomerConcern|
+|value|
+||
+|001 - Aim/Alignment (Out of Adjustment) | 
+|002 - Air Conditioner Blows Warm Air  | 
+|003 - Air Distribution/Temp Control Concerns | 
+|004 - Alignment/Fit Improper/Aim | 
+|005 - Appearance | 
+|006 - Backfires | 
+|007 - Broken/Chipped/Cracked | 
+|008 - Not Charging | 
+|009 - Chatters/Shudders/Vibrates | 
+|010 - Lamp - Amber Warning  | 
+|011 - Heater-Does Not Operate Properly | 
+|021 - Coolant Low | 
+|022 - Defog/Defrost/Deicer-Does Not Operate Properly | 
+|025 - Distorted/Dented | 
+|026 - Does Not Close Properly | 
+|028 - Does Not Open Properly | 
+|029 - Does Not Operate Properly | 
+|030 - Does Not Release Properly/Drags | 
+|031 - Drifts or Pulls, Right | 
+|032 - Drifts or Pulls, Left | 
+|033 - Engine Continues to Run with Key Turned Off | 
+|035 - Engine Overheats  | 
+|036 - Runs Cool | 
+|038 - Engine Turns Over But Slow/Hard to Start | 
+|039 - Engine Turns Over But Will Not Start | 
+|039 - Cranks, Won't Start | 
+|042 - Excessive Free Play/Wander | 
+|043 - Excessive Consumption, Fuel or Oil | 
+|045 - Failed Emissions Test | 
+|049 - Fuel Spews Upon Cap Removal | 
+|051 - Hard To Turn | 
+|052 - Ride, Hard | 
+|053 - Ride, Soft | 
+|054 - Hesitation/Surges/Bucks/ Jerks on Acceleration | 
+|055 - Idle, Fast | 
+|056 - Idle, Slow | 
+|057 - Inaccurate/Fluctuates | 
+|059 - Low or No Power | 
+|061 - Leans or Sags | 
+|062 - Loose/Not Properly Attached | 
+|066 - Noise - Knocking  | 
+|072 - Odor | 
+|079 - Poor Sound Quality | 
+|086 - Idle, Rough | 
+|088 - Shifts, Busy/Erratic | 
+|089 - Shifts, Rough/Harsh | 
+|090 - Shifts, Soft/Mushy | 
+|091 - Shifts, Early | 
+|092 - Shifts, Too Late/No Shift/Intermittent Shift | 
+|093 - Slips | 
+|095 - Exhaust, Emits Smoke | 
+|097 - Speed Control - Does Not Disengage Properly | 
+|098 - Speed Control - Does Not Engage Properly | 
+|099 - Speed Control - Will not Maintain a Consistent Speed | 
+|100 - Stalls | 
+|111 - Uncomfortable | 
+|118 - Weak (Inoperative/Ineffective) | 
+|119 - Weak/Dead Battery | 
+|120 - Will Not Engage/Disengage | 
+|121 - Will Not Move In Gear | 
+|122 - Will Not Stay In Gear | 
+|128 - Binds/Grabs | 
+|136 - Fluid, High | 
+|137 - Fluid, Low | 
+|139 - Air  | 
+|140 - Fuel  | 
+|141 - Leaks, Oil/Lube | 
+|142 - Leaks, Coolant/Water | 
+|143 - Exhaust  | 
+|144 - Leaks, Brake Fluid | 
+|145 - Leaks, Refrigerant | 
+|146 - Lost/Missing/Omitted | 
+|147 - Out of Adjustment | 
+|148 - Axle Alignment  | 
+|149 - Leaks, Brake Valve | 
+|151 - Plugged/Restricted | 
+|157 - Rusty/Corrosion | 
+|163 - Stays On, Won't Cycle | 
+|164 - Temperature, Too Hot | 
+|165 - Temperature, Too Cool | 
+|166 - Torn | 
+|167 - Flat | 
+|168 - Punctured | 
+|169 - Worn | 
+|170 - Pedal, Hard | 
+|171 - Pedal,Soft/Spongy | 
+|172 - Wrong Part | 
+|173 - Other | 
+|174 - Seized | 
+|175 - Dull (paint) | 
+|176 - Faded (paint) | 
+|177 - Streaked (paint) | 
+|178 - Orange Peel (paint) | 
+|179 - Overspray | 
+|180 - Noise - Clank  | 
+|181 - Shorted | 
+|182 - Mottling | 
+|183 - Solvent Pop (fish eyes) | 
+|184 - Slow Release, Spring Brake | 
+|190 - ABS, Light Stays On | 
+|191 - ABS, System Cycles Constantly | 
+|192 - ABS, System Does Not Self Check | 
+|193 - ABS, System Does Not Work | 
+|194 - ABS, Valve Broken | 
+|195 - Does Not Function, Brake Valve | 
+|196 - Cannot Clear Stored Fault Codes | 
+|197 - Brakes, Dragging | 
+|198 - Tire  | 
+|199 - Axle, Locks Up | 
+|200 - Fuel Consumption High | 
+|201 - Oil Consumption High | 
+|202 - Engine Knocking | 
+|203 - Engine Vibration | 
+|204 - Accessory Drive / PTO Inoperative | 
+|205 - Air Compressor Malfunction | 
+|206 - Air in Coolant | 
+|207 - Check Engine Light On | 
+|207 - Lamp - Lamp - Malfunction Indicator (MIL)  | 
+|208 - Coolant in Oil | 
+|209 - Engine Quit Running | 
+|210 - Engine RPM Erratic | 
+|211 - Foreign Material in Oil | 
+|212 - Fuel in Exhaust | 
+|213 - Fuel in Oil | 
+|214 - Oil Blowing Out Breather | 
+|215 - Oil in Coolant | 
+|216 - Oil Level Increasing | 
+|217 - Oil Out Exhaust | 
+|218 - Oil Pressure Erratic | 
+|219 - Oil Pressure High | 
+|219 - Engine High Oil Pressure  | 
+|220 - Engine Low Oil Pressure  | 
+|220 - Oil Pressure Low | 
+|221 - Starter Inoperative | 
+|222 - Stop Engine Light On | 
+|223 - Exhaust in Coolant | 
+|224 - Engine Misfires | 
+|225 - Electrical Problem | 
+|226 - Parts Installed Incorrectly | 
+|227 - Air in Fuel | 
+|230 - Engine Oil  | 
+|231 - Transmission Fluid  | 
+|232 - Coolant  | 
+|233 - Fluid Color - Black  | 
+|234 - Water | 
+|235 - Fluid Color - Green  | 
+|236 - Fluid Color - Red  | 
+|237 - Lamp - Wait to Start  | 
+|238 - Lamp - Idle Shut Down  | 
+|239 - Lamp - Maintenance  | 
+|240 - Lamp - High Exhaust System Temperature (HEST)  | 
+|241 - Lamp - Diesel Exhaust Fluid (DEF) Low Level  | 
+|242 - Lamp - Diesel Particulate Filter (DPF) Indicator  | 
+|243 - Lamp - Transmission Warning  | 
+|244 - Lamp - Brake Failure  | 
+|245 - Lamp - Parking Brake  | 
+|246 - Lamp - Traction Control  | 
+|247 - Lamp - Battery Voltage  | 
+|248 - Lamp - Trailer Antilock Braking System (ABS)  | 
+|249 - Lamp - Electronic Stability Control  | 
+|250 - Noise - Grinding  | 
+|251 - Noise - Humming  | 
+|252 - Noise - Screech  | 
+|253 - Noise - Thumping  | 
+|254 - Noise - Whisle  | 
+|255 - Smoke Color - Black  | 
+|256 - Smoke Color - Blue  | 
+|257 - Smoke Color - Grey  | 
+|258 - Smoke Color - White | 
+|259 - Won't Crank, Won't Start  | 
+|261 - Air Conditioner Blows No Air  | 
+|262 - Transmission Overheats  | 
+|263 - Axle Overheats  | 
+|264 - Noise - Popping  | 
+|265 - Noise - Banging  | 
+|267 - Noise - Whining  | 
+|268 - Parked Regen, Won't Complete  | 
+|269 - Frequent Regens  | 
+|270 - Department of Transportation (DOT) Inspection  | 
+|271 - Preventative Maintenance (PM) A  | 
+|272 - Preventative Maintenance (PM) B | 
+|273 - Courtesy Inspection  | 
+|275 - Door  | 
+|276 - Mirror  | 
+|277 - Antenna | 
+|278 - Light  | 
+|279 - Bumper | 
+|280 - Fairing  | 
+|281 - Grille | 
+|282 - Wheel  | 
+|283 - Pre-Delivery Inspection (PDI)  | 
+|284 - Fifth Wheel Will Release Without Driver Command  | 
+|285 - Fifth Wheel Won't Unlock/Disengage | 
+|286 - Fifth Wheel Won't Lock  | 
+|287 - Steering Wheel Does Not Return  | 
+|288 - DEF Gauge Not Working  | 
+|289 - Fuel Gauge Not Working  | 
+|290 - Temperature Gauge Not Working  | 
+|291 - Speedometer Gauge Not Working  | 
+|292 - Engine RPM Gauge (Tachometer) Not Working  | 
+|293 - Voltage Gauge Not Working  | 
+|294 - Transmission Slips Out of Gear | 
+|295 - Transmission Won't Go Into Gear | 
+|296 - Programmable Parameters | 
+|297 - Quick Lube  | 
+|298 - Vibration - Steering Wheel  | 
+|299 - Vibration - Seat | 
+|300 - Vibration - Cab  | 
+|301 - Hood  | 
+|302 - Fender | 
+|303 - Engine Derating  | 
+|304 - Headlights Not Working  | 
+|305 - Stoplights Not Working  | 
+|306 - Turn Lights Not Working  | 
+|308 - Fog Lights Not Working  | 
+|309 - Work Light Not Working  | 
+|310 - Backup (Reverse) Lights Not Working  | 
+|311 - Clutch Slips  | 
+|312 - Clutch Pedal Hard to Push  | 
+|313 - Clutch Pedal Won't Return  | 
+|314 - Clutch Needs Replacement  | 
+|320 - Air Conditioner, Does Not Operate Properly | 
+|321 - Warning Light On | 
+|322 - Runs Hot/Overheats | 
+|323 - Engine Low Power | 
+|324 - Noise/Rattle/Whistle | 
+|325 - Transmission Won't Shift  | 
+|326 - Leaks, Air | 
+|327 - Leaks, Fuel | 
+|328 - Leaks, Exhaust | 
+|329 - Out of Alignment-Vehicle | 
+|330 - Squeal | 
+|331 - Lamp - Antilock Braking System (ABS)  | 
+|332 - Tires, Flat Spotting | 
+|333 - Noise - Squeal  | 
+|334 - Vibration - Engine  | 
+|335 - Marker Lights Not Working  | 
+|336 - Lamp - Red Stop  | 
+|337 - Engine Runs Rough/Misfire/Rough Idle  | 
+|338 - Engine RPM Surge | 
+
+
+!|Inspect Dropdown Contents|cboVMRSCorrectiveAction|
+|value|
+|                                    |
+|00 - N/A 	                         |
+|01 - Adjust                         |
+|02 - Clean                          |
+|03 - Replace New                    |
+|04 - Replace Rebuilt                |
+|05 - Replace Used                   |
+|06 - Inspect                        |
+|07 - Lubricate                      |
+|08 - Overhaul                       |
+|09 - Troubleshooting                |
+|0A - PM LEVEL A                     |
+|0B - PM LEVEL B                     |
+|0C - PM LEVEL C                     |
+|0D - PM LEVEL D                     |
+|0E - PM LEVEL E                     |
+|0F - PM LEVEL F                     |
+|0G - PM LEVEL G                     |
+|0H - PM LEVEL H                     |
+|0O - PM LEVEL O                     |
+|12 - Repair Recall/Campaign         |
+|13 - Other Mnt Repair               |
+|14 - Install                        |
+|15 - Paint Prep, & Repaint          |
+|16 - Road Call                      |
+|17 - Add Fluids                     |
+|18 - Road Test                      |
+|19 - Rewire / Wire                  |
+|20 - Towing                         |
+|21 - Fabricate/Weld/Burn            |
+|22 - Modify / Relocate / Reconfigure|
+|23 - Program / Reprogram / Reflash  |
+|24 - Repair                         |
+|25 - Remove                         |
+|26 - Seal or Reaffix                |
+|27 - Align                          |
+|28 - Refinish                       |
+|29 - Correct Program                |
+|30 - Work Incomplete                |
+|31 - Rotate                         |
+|32 - Torque                         |
+|33 - Tighten                        |
+|34 - Charge / Recharge              |
+|35 - Regenerate Off Vehicle (ATD)   |
+|36 - Commission/Decommision         |
+|37 - Ferry Vehicle                  |
+|38 - Travel                         |
+|39 - Pickup Parts                   |
+|40 - JUMP START                     |
+|41 - WASH                           |
+|42 - DIESEL OPACITY TEST            |
+|43 - REFURBISH                      |
+|44 - FLUSH                          |
+|45 - RESURFACE                      |
+|49 - SPOT REPAIR                    |
+|57 - OVERLAY                        |
+|98 - In Frame Overhaul              |
+|99 - Out of Chassis Overhaul        |
+|A - PM Level A                      |
+|B - PM Level B                      |
+|C - PM Level C                      |
+|CM - PERFORMED                      |
+|D - PM Level D                      |
+|E - PM Level E                      |
+|F - PM Level F                      |
+|G - PM Level G                      |
+|H - PM Level H                      |
+|O - PM Level O                      |
+|ZG - DEF AWNING INSTALLATION        |
+|ZH - DOC&CLAMPKIT                   |
+
+!|Set form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|Go!|
+|G8 - All|00 - Not Applicable|137 - Fluid, Low|17 - Add Fluids|003001201|True|
+
+!|Click tab|tpgDetails|
+
+!|Set form fields|
+|txtCauseComplaintCorrection|Go!|
+|CCC|True|
+
+!|Perform action|Save|
+
+'''Verify fields after Save'''
+
+!|Inspect form fields|
+|vtlOwningCustomer|txtCompanyName  |txtPhone  |txtAddress1     |txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|
+|50000           |Fred & Ed Trucks|2523636500|7 Franken Street|Suite B   |Coffeen|IL       |62017        |USA       |Greene   |
+
+!|Inspect form fields|
+|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|
+|Car1|1234|1003|
+
+!|Inspect form fields|
+|vtlVin|txtChassis|txtModel|
+|12345678901234020|01234020|TestModel|
+
+!|Inspect form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|
+|Miles|1000|14|
+
+!|Inspect form fields|
+|grpClaimType|cboClaimCategory|
+|OEM|PACCAR Transmission|
+
+!|Inspect form fields|
+|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
+|B - PACCAR Parts|True|Prior Approval ID 123!|SMSN 789$!||
+
+!|Inspect form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|
+|P5678-963|CPM Make1-A|CPMN Model1-A|CPSN SN-7891011-A|
+
+!|Inspect form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |
+|07 - Improper Fluid Level|5002                |Miles             |5678           |Inv542121       |WPNumber5-A  |DiagnosticCase1  |FAN529-A|SCaseNum11-A|
+
+!|Inspect form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|
+|G8 - All|00 - Not Applicable|137 - Fluid, Low|17 - Add Fluids|003001201|
+
+!|Perform action|Edit|
+
+!anchor 12
+
+''' Edit fields, select cancel, fields should revert to original'''
+
+!|Set form fields|
+|vtlOwningCustomer|txtCompanyName  |txtPhone  |txtAddress1     |txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|Go!|
+|44444           |Peter Rabbit Trucking||1 Bunny Lane|Building E Suite 12  |Basket|IL       |62690        |USA       |Wright   |True|
+
+!|Set form fields|
+|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|Go!|
+|Chicago|5678|1005|True|
+
+!|Set form fields|
+|vtlVin|txtChassis|txtModel|Go!|
+|44345678901234033|01234033|TestModel2|True|
+
+!|Set form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|Go!|
+|Miles|1000|14|True|
+
+!|Set form fields|
+|grpClaimType|cboClaimCategory|Go!|
+|Part|PACCAR Part|True|
+
+!|Set form fields|
+|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|Go!|
+|K - Kenworth|False|Prior Approval ID 456!|SMSN 012$!||True|
+
+!|Set form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|Go!|
+|P5678-963EDIT|CPM Make1-AEDIT|CPMN Model1-AEDIT|CPSN SN-7891011-EDIT|True|
+
+!|Set form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |Go!|
+|18 - Leaking|5050                |Kilometers             |5678          |Inv512201       |WPNumber5-AEDIT  |DiagnosticEDIT  |FAN529-AEDIT|SCaseNum11-AEDIT|True|
+
+!|Set form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|Go!|
+|01 - Front|01 - Position 1|021 - Coolant Low|06 - Inspect|001002154|True|
+
+!|Perform action|Cancel|
+
+!|Inspect form fields|
+|vtlOwningCustomer|txtCompanyName  |txtPhone  |txtAddress1     |txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|
+|50000           |Fred & Ed Trucks|2523636500|7 Franken Street|Suite B   |Coffeen|IL       |62017        |USA       |Greene   |
+
+!|Inspect form fields|
+|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|
+|Car1|1234|1003|
+
+!|Inspect form fields|
+|vtlVin|txtChassis|txtModel|
+|12345678901234020|01234020|TestModel|
+
+!|Inspect form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|
+|Miles|1000|14|
+
+!|Inspect form fields|
+|grpClaimType|cboClaimCategory|
+|OEM|PACCAR Transmission|
+
+!|Inspect form fields|
+|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
+|B - PACCAR Parts|True|Prior Approval ID 123!|SMSN 789$!||
+
+!|Inspect form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|
+|P5678-963|CPM Make1-A|CPMN Model1-A|CPSN SN-7891011-A|
+
+!|Inspect form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |
+|07 - Improper Fluid Level|5002                |Miles             |5678           |Inv542121       |WPNumber5-A  |DiagnosticCase1  |FAN529-A|SCaseNum11-A|
+
+!|Inspect form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|
+|G8 - All|00 - Not Applicable|137 - Fluid, Low|17 - Add Fluids|003001201|
+
+!anchor 13
+
+'''Edit fields, Save, then Inspect for new data'''
+
+!|Perform action|Edit|
+
+!|Set form fields|
+|vtlOwningCustomer|txtCompanyName  |txtPhone  |txtAddress1     |txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|Go!|
+|44444           |Peter Rabbit Trucking||1 Bunny Lane|Building E Suite 12  |Basket|IL       |62690        |USA       |Wright   |True|
+
+!|Set form fields|
+|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|Go!|
+|Chicago|5678|1003|True|
+
+!|Set form fields|
+|vtlVin|txtChassis|txtModel|Go!|
+|44345678901234033|01234033|TestModel2|True|
+
+!|Set form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|Go!|
+|Miles|1000|14|True|
+
+!|Set form fields|
+|grpClaimType|cboClaimCategory|Go!|
+|Part|PACCAR Part|True|
+
+!|Set form fields|
+|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|Go!|
+|K - Kenworth|False|Prior Approval ID 456!|SMSN 012$!||True|
+
+!|Set form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|Go!|
+|P5678-963EDIT|CPM Make1-AEDIT|CPMN Model1-AEDIT|CPSN SN-7891011-EDIT|True|
+
+!|Check|that the DateTimePicker|Retail Sales Date|Is Checked|False|
+
+!|Check|that the field|Retail Sales Date|is in error|True|
+
+!|Set form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|Retail Sales Date|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |Go!|
+|18 - Leaking|5050                |Kilometers             |5678          |Inv512201       |2020-06-18|WPNumber5-AEDIT  |DiagnosticEDIT  |FAN529-AEDIT|SCaseNum11-AEDIT|True|
+
+!|Check|that the DateTimePicker|Retail Sales Date|Is Checked|True|
+
+!|Check|that the field|Retail Sales Date|is in error|False|
+
+
+!|Set form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|Go!|
+|01 - Front|01 - Position 1|021 - Coolant Low|06 - Inspect|001002154|True|
+
+!|Perform action|Save|
+
+!|Inspect form fields|
+|vtlOwningCustomer|txtCompanyName       |txtPhone|txtAddress1 |txtAddress2        |txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|
+|44444            |Peter Rabbit Trucking|blank        |1 Bunny Lane|Building E Suite 12|Basket |IL       |62690        |USA       |Wright   |
+
+!|Inspect form fields|
+|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|
+|Chicago|5678|1003|
+
+!|Inspect form fields|
+|vtlVin|txtChassis|txtModel|
+|44345678901234033|01234033|TestModel2|
+
+!|Inspect form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|
+|Miles|1000|14|
+
+!|Inspect form fields|
+|grpClaimType|cboClaimCategory|
+|Part|PACCAR Part|
+
+!|Inspect form fields|
+|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
+|K - Kenworth|False|Prior Approval ID 456!|SMSN 012$!||
+
+!|Inspect form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|
+|P5678-963EDIT|CPM Make1-AEDIT|CPMN Model1-AEDIT|CPSN SN-7891011-EDIT|
+
+!|Inspect form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |
+|18 - Leaking|5050                |Kilometers             |5678          |Inv512201       |WPNumber5-AEDIT  |DiagnosticEDIT  |FAN529-AEDIT|SCaseNum11-AEDIT|
+
+!|Inspect form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|
+|01 - Front|01 - Position 1|021 - Coolant Low|06 - Inspect|001002154|
+
+!|close form|
+
+!anchor 8
+
+'''Search for a record and verify fields in View Mode'''
+
+!|set form fields|
+|vtlBranchSearch|Go!|
+||True|
+
+!|Perform action|Search|
+
+!|Inspect datagrid|_dataGridInternal|
+|Branch|OEM         |Claim|Repair order|Invoice|Customer      |VIN|Close Date          |Claim Total|
+|Car1  |PACCAR - PRW|1002 |1002        |       |K & J Trucking|   |4/10/2013 8:00:00 AM|0       |
+|Chicago|PACCAR - PRW| 1003| 1003| Inv512201| Peter Rabbit Trucking| 44345678901234033| 4/10/2013 8:00:00 AM|0| 
+
+!|Select Grid|grdSearch|row|2|
+
+!|Perform action|View|
+
+!|Inspect form fields|
+|vtlOwningCustomer|txtCompanyName  |txtPhone  |txtAddress1     |txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|
+|44444           |Peter Rabbit Trucking|blank|1 Bunny Lane|Building E Suite 12  |Basket|IL       |62690        |USA       |Wright   |
+
+!|Inspect form fields|
+|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|
+|Chicago|5678|1003|
+
+!|Inspect form fields|
+|vtlVin|txtChassis|txtModel|
+|44345678901234033|01234033|TestModel2|
+
+!|Inspect form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|
+|Miles|1000|14|
+
+!|Inspect form fields|
+|grpClaimType|cboClaimCategory|
+|Part|PACCAR Part|
+
+!|Inspect form fields|
+|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
+|K - Kenworth|False|Prior Approval ID 456!|SMSN 012$!||
+
+!|Inspect form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|
+|P5678-963EDIT|CPM Make1-AEDIT|CPMN Model1-AEDIT|CPSN SN-7891011-EDIT|
+
+!|Inspect form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |
+|18 - Leaking|5050                |Kilometers             |5678          |Inv512201       |WPNumber5-AEDIT  |DiagnosticEDIT  |FAN529-AEDIT|SCaseNum11-AEDIT|
+
+!|Inspect form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|
+|01 - Front|01 - Position 1|021 - Coolant Low|06 - Inspect|001002154|
+
+!anchor 15
+
+'''Copy/New - All Claim details should copy to New record except Warranty RO'''
+
+!|Perform action|CopyNew|
+
+!|Inspect form fields|
+|vtlOwningCustomer|txtCompanyName  |txtPhone  |txtAddress1     |txtAddress2|txtCity|vtlRegion|txtPostalCode|txtCountry|txtCounty|
+|44444           |Peter Rabbit Trucking|blank|1 Bunny Lane|Building E Suite 12  |Basket|IL       |62690        |USA       |Wright   |
+
+!|Inspect form fields|
+|vtlBranch|txtDealerCode|vtlWarrantyRepairOrder|
+|Chicago|5678|blank|
+
+!|Inspect form fields|
+|vtlVin|txtChassis|txtModel|
+|44345678901234033|01234033|TestModel2|
+
+!|Inspect form fields|
+|cboMeterType|txtMeterReading|txtEngineHours|
+|Miles|1000|14|
+
+!|Inspect form fields|
+|grpClaimType|cboClaimCategory|
+|Part|PACCAR Part|
+
+!|Inspect form fields|
+|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
+|K - Kenworth|False|Prior Approval ID 456!|SMSN 012$!||
+
+!|Inspect form fields|
+|txtCausalPartNumber|txtCausalPartMake|txtCausalPartModelNumber|txtCausalPartSerialNumber|
+|P5678-963EDIT|CPM Make1-AEDIT|CPMN Model1-AEDIT|CPSN SN-7891011-EDIT|
+
+!|Inspect form fields|
+|cboVMRSCausalCode        |txtCausalPartMileage|cboCausalPartMeter|txtSellingDealer|txtInvoiceNumber|txtWarrantablePartNumber|txtDiagnosticCase|txtFailedAssemblyNumber  |txtSupportCaseNumber  |
+|18 - Leaking|5050                |Kilometers             |5678          |Inv512201       |WPNumber5-AEDIT  |DiagnosticEDIT  |FAN529-AEDIT|SCaseNum11-AEDIT|
+
+!|Inspect form fields|
+|cboPositionCode|cboSequence|cboVMRSCustomerConcern|cboVMRSCorrectiveAction|vtlVMRSFailureLocation|
+|01 - Front|01 - Position 1|021 - Coolant Low|06 - Inspect|001002154|
+
+!|Set form fields|
+|vtlWarrantyRepairOrder|Go!|
+|1004|True|
+
+!|Perform action|Save|
+
+!anchor 14
+
+'''Delete a record'''
+
+!|Close form|
+
+!|set form fields|
+|vtlBranchSearch|Go!|
+||True|
+
+!|Perform action|Search|
+
+!|Inspect datagrid|_dataGridInternal|
+|Branch |OEM         |Claim|Repair order|Invoice  |Customer             |VIN              |Close Date          |Claim Total|
+|Car1   |PACCAR - PRW|1002 |1002        |blank         |K & J Trucking       |                 |4/10/2013 8:00:00 AM|0          |
+|Chicago|PACCAR - PRW|1003 |1003        |Inv512201|Peter Rabbit Trucking|44345678901234033|4/10/2013 8:00:00 AM|0          |
+|Chicago|PACCAR - PRW|1004 |1004        |Inv512201         |Peter Rabbit Trucking|44345678901234033|4/10/2013 8:00:00 AM|0          |
+
+!|Select Grid|grdSearch|row|1|
+
+!|Perform action|View|
+
+!|Set message|SYS003B|response to|Yes|
+
+!|Perform action|Delete|
+
+!|set form fields|
+|vtlBranchSearch|Go!|
+||True|
+
+!|Perform action|Search|
+
+!|Inspect datagrid|_dataGridInternal|
+|Branch |OEM         |Claim|Repair order|Invoice  |Customer             |VIN              |Close Date          |Claim Total|
+|Chicago|PACCAR - PRW|1003 |1003        |Inv512201|Peter Rabbit Trucking|44345678901234033|4/10/2013 8:00:00 AM|0          |
+|Chicago|PACCAR - PRW|1004 |1004        |Inv512201         |Peter Rabbit Trucking|44345678901234033|4/10/2013 8:00:00 AM|0          |
+
+!|Close form|

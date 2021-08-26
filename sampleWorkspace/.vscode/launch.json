@@ -1,0 +1,16 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "fitnesse",
+			"request": "launch",
+			"name": "Debug create_claim.fit",
+			"program": "${workspaceFolder}/create_claim.fit",
+			"stopOnEntry": true,
+			"trace": false
+		}
+	]
+}
