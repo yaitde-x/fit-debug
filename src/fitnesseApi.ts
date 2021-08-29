@@ -1,10 +1,15 @@
 
+import * as net from 'net';
+import PromiseSocket from 'promise-socket';
 export interface FitnesseRequest {
+    requestId?: string;
+    control: string;
     lineNumber: number;
-    statement: string;
+    statement?: string;
 }
 
 export interface ApplicationState {
+    connectionId: number;
     activeForm: string;
     testNumber: string;
     dataSet: string;
@@ -18,154 +23,97 @@ export interface StateVar {
     value: any;
 }
 
+export interface ExecutionError {
+    code: number;
+    stack: string[];
+    messages: string[];
+}
+
+export interface ExecutionResult {
+    pass: number;
+    fail: number;
+    exceptions?: number;
+    messages?: string[];
+    error?: ExecutionError;
+}
+
 export interface FitnesseResponse {
+    requestId: string;
     state: ApplicationState;
     globals: StateVar[];
     locals: StateVar[];
+    result?: ExecutionResult;
 }
 
 export interface FitnesseApi {
-    exec(request: FitnesseRequest): FitnesseResponse;
+    connect(server: string, port: number): Promise<void>
+    exec(request: FitnesseRequest): Promise<FitnesseResponse>;
 }
+
+
+const STATE_DISCONNECTED: number = 0;
+const STATE_CONNECTED: number = 1;
 
 export class MockFitnesseApi implements FitnesseApi {
     rootPath: string = '/Users/sakamoto/Temp';
 
-    public exec(request: FitnesseRequest): FitnesseResponse {
-        const systemTime = new Date().toISOString().slice(0, 10);
+    private _socket: net.Socket;
+    private _client: PromiseSocket<net.Socket>;
+    private _state: number = STATE_DISCONNECTED;
 
-        const responses: any = {
-            "0": {
-                state: {
-                    activeForm: ""
-                    , user: ""
-                    , userId: 0
-                    , testNumber: ""
-                    , dataSet: ""
-                    , systemTime: systemTime
-                },
-                globals: [
-                    { key: "session", value: "someguid" }
-                ],
-                locals: [
-                    
-                ]
-            },
-            "2": {
-                state: {
-                    activeForm: ""
-                    , user: ""
-                    , userId: 0
-                    , testNumber: ""
-                    , dataSet: ""
-                    , systemTime: systemTime
-                },
-                globals: [
-                    { key: "session", value: "someguid" }
-                ],
-                locals: [
-                ]
-            },
-            "27": {
-                state: {
-                    activeForm: ""
-                    , user: ""
-                    , userId: 0
-                    , testNumber: "PAC95010-001"
-                    , dataSet: ""
-                    , systemTime: systemTime
-                },
-                globals: [
-                    { key: "session", value: "someguid" }
-                ],
-                locals: [
-                    
-                ]
-            },
-            "31": {
-                state: {
-                    activeForm: ""
-                    , user: ""
-                    , userId: 0
-                    , testNumber: "PAC95010-001"
-                    , dataSet: "ImmediateInterbranchTransferSetup"
-                    , systemTime: systemTime
-                },
-                globals: [
-                    { key: "session", value: "someguid" }
-                ],
-                locals: [
-                    
-                ]
-            },
-            "35": {
-                state: {
-                    activeForm: ""
-                    , user: "demo"
-                    , userId: 1
-                    , testNumber: "PAC95010-001"
-                    , dataSet: "ImmediateInterbranchTransferSetup"
-                    , systemTime: systemTime
-                },
-                globals: [
-                    { key: "session", value: "someguid" }
-                ],
-                locals: [
-                    { key: "businessProcess", value: { id: 15, description: "abc", customer: "ABC" } }
-                ]
-            },
-            "45": {
-                state: {
-                    activeForm: ""
-                    , user: "demo"
-                    , userId: 1
-                    , testNumber: "PAC95010-001"
-                    , dataSet: "ImmediateInterbranchTransferSetup"
-                    , systemTime: "04/10/2013 8:00 AM"
-                },
-                globals: [
-                    { key: "session", value: "someguid" }
-                ],
-                locals: [
-                    { key: "businessProcess", value: { id: 15, description: "abc", customer: "ABC" } }
-                ]
-            },
-            "51": {
-                state: {
-                    activeForm: "Customer"
-                    , user: "demo"
-                    , userId: 1
-                    , testNumber: "PAC95010-001"
-                    , dataSet: "ImmediateInterbranchTransferSetup"
-                    , systemTime: "04/10/2013 8:00 AM"
-                },
-                globals: [
-                    { key: "session", value: "someguid" }
-                ],
-                locals: [
-                    { key: "businessProcess", value: { id: 15, description: "abc", customer: "ABC" } }
-                ]
-            }
-        };
+    constructor() {
+        const that = this;
 
-        var key = (request.lineNumber + "");
-        if (responses[key] === undefined) {
-            return {
-                state: {
-                    activeForm: "unknown"
-                    , user: "unknown"
-                    , userId: -1
-                    , testNumber: "unknown"
-                    , dataSet: "unknown"
-                    , systemTime: ""
-                },
-                globals: [
-                ],
-                locals: [
-                ]
-            };
+        this._socket = new net.Socket();
+        this._client = new PromiseSocket(this._socket);
+
+        this._socket.on('close', function () {
+            that._state = STATE_DISCONNECTED;
+            console.log('Connection closed');
+        });
+    }
+
+    private _requestId: number = 0;
+
+    public async connect(server: string, port: number): Promise<void> {
+
+        if (this._state === STATE_CONNECTED) {
+            return;
         }
 
-        return responses[key];
+        await this._client.connect(port, server);
+
+        console.log('Connected');
+        this._state = STATE_CONNECTED;
+
+        return;
+    }
+
+    public async exec(request: FitnesseRequest): Promise<FitnesseResponse> {
+
+        this._requestId++;
+        request.requestId = this._requestId + "";
+
+        await this._client.write(JSON.stringify(request));
+
+        const responseBuffer: string | Buffer | undefined = await this.promiseWithTimeout(this._client.read(), 300);
+
+        if (responseBuffer && responseBuffer instanceof Buffer) {
+            const stringBuf = responseBuffer.toString('utf-8');
+            return <FitnesseResponse>JSON.parse(stringBuf);
+        }
+        return <FitnesseResponse>JSON.parse(<string>responseBuffer);
+    }
+
+    private promiseWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+        //let timeoutId: NodeJS.Timeout;
+        const timeoutPromise = new Promise<T>((_, reject) => {
+            const timeoutId = setTimeout(() => {
+                clearTimeout(timeoutId);
+                reject(new Error('Request timed out'));
+            }, ms);
+        });
+
+        return Promise.race([promise, timeoutPromise]);
     }
 }

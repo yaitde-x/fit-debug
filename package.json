@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "await-notify": "1.0.1",
+    "promise-socket": "^7.0.0",
     "vscode-debugadapter": "^1.49.0-pre.0"
   },
   "devDependencies": {

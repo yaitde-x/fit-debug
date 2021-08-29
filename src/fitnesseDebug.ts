@@ -218,18 +218,18 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		// start the program in the runtime
 		await this._runtime.start(args.program, !!args.stopOnEntry);
 
-		if (args.compileError) {
-			// simulate a compile/build error in "launch" request:
-			// the error should not result in a modal dialog since 'showUser' is set to false.
-			// A missing 'showUser' should result in a modal dialog.
-			this.sendErrorResponse(response, {
-				id: 1001,
-				format: `compile error: some fake error.`,
-				showUser: args.compileError === 'show' ? true : (args.compileError === 'hide' ? false : undefined)
-			});
-		} else {
-			this.sendResponse(response);
-		}
+		// if (args.compileError) {
+		// 	// simulate a compile/build error in "launch" request:
+		// 	// the error should not result in a modal dialog since 'showUser' is set to false.
+		// 	// A missing 'showUser' should result in a modal dialog.
+		// 	this.sendErrorResponse(response, {
+		// 		id: 1001,
+		// 		format: `compile error: some fake error.`,
+		// 		showUser: args.compileError === 'show' ? true : (args.compileError === 'hide' ? false : undefined)
+		// 	});
+		// } else {
+		this.sendResponse(response);
+		// }
 	}
 
 	protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): Promise<void> {
@@ -409,23 +409,27 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		this._runtime.continue(false);
-		this.sendResponse(response);
+		this._runtime.continue(false).then(() => {
+			this.sendResponse(response);
+		});
 	}
 
 	protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
-		this._runtime.continue(true);
-		this.sendResponse(response);
+		this._runtime.continue(true).then(() => {
+			this.sendResponse(response);
+		});
  	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this._runtime.step(args.granularity === 'instruction', false);
-		this.sendResponse(response);
+		this._runtime.step(args.granularity === 'instruction', false).then(() => {
+			this.sendResponse(response);
+		});
 	}
 
 	protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {
-		this._runtime.step(args.granularity === 'instruction', true);
-		this.sendResponse(response);
+		this._runtime.step(args.granularity === 'instruction', true).then(() => {
+			this.sendResponse(response);
+		});
 	}
 
 	protected stepInTargetsRequest(response: DebugProtocol.StepInTargetsResponse, args: DebugProtocol.StepInTargetsArguments) {

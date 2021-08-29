@@ -104,8 +104,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 	public debug;
 
-	private _namedException: string | undefined;
-	private _otherExceptions = false;
+	// private _namedException: string | undefined;
+	// private _otherExceptions = false;
 
 
 	constructor(private _fileAccessor: FileAccessor, private _fitnesseApi: FitnesseApi) {
@@ -121,6 +121,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 		await this.verifyBreakpoints(this._sourceFile);
 
+		await this._fitnesseApi.connect('127.0.0.1', 1111);
+
 		if (this.debug && stopOnEntry) {
 			this.findNextStatement(false, 'stopOnEntry');
 		} else {
@@ -132,9 +134,9 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	/**
 	 * Continue execution to the end/beginning.
 	 */
-	public continue(reverse: boolean) {
+	public async continue(reverse: boolean) : Promise<void> {
 
-		while (!this.executeLine(this._currentLine, reverse)) {
+		while (!await this.executeLine(this._currentLine, reverse)) {
 			if (this.updateCurrentLine(reverse)) {
 				break;
 			}
@@ -147,7 +149,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	/**
 	 * Step to the next/previous non empty line.
 	 */
-	public step(instruction: boolean, reverse: boolean) {
+	public async step(instruction: boolean, reverse: boolean) : Promise<void> {
 
 		if (instruction) {
 			if (reverse) {
@@ -157,7 +159,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			}
 			this.sendEvent('stopOnStep');
 		} else {
-			if (!this.executeLine(this._currentLine, reverse)) {
+			if (!await this.executeLine(this._currentLine, reverse)) {
 				if (!this.updateCurrentLine(reverse)) {
 					this.findNextStatement(reverse, 'stopOnStep');
 				}
@@ -344,8 +346,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	}
 
 	public setExceptionsFilters(namedException: string | undefined, otherExceptions: boolean): void {
-		this._namedException = namedException;
-		this._otherExceptions = otherExceptions;
+		// this._namedException = namedException;
+		// this._otherExceptions = otherExceptions;
 	}
 
 	public setInstructionBreakpoint(address: number): boolean {
@@ -504,7 +506,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		return false;
 	}
 
-	private executeLine(ln: number, reverse: boolean): boolean {
+	private async executeLine(ln: number, reverse: boolean): Promise<boolean> {
 
 		if (!this.debug) {
 			return false;
@@ -513,10 +515,11 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		const line = this.getLine(ln);
 		const request: FitnesseRequest = {
 			lineNumber: ln,
-			statement: ""
+			control : 'x',
+			statement: line
 		};
 
-		this._lastResponse = this._fitnesseApi.exec(request);
+		this._lastResponse = await this._fitnesseApi.exec(request);
 
 		while (reverse ? this._instruction >= this._starts[ln] : this._instruction < this._ends[ln]) {
 			reverse ? this._instruction-- : this._instruction++;
@@ -581,34 +584,41 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			}
 		}
 
-		// if 'log(...)' found in source -> send argument to debug console
-		const matches = /log\((.*)\)/.exec(line);
-		if (matches && matches.length === 2) {
-			this.sendEvent('output', matches[1], this._sourceFile, ln, matches.index);
+		// if any messages came back, we will dump to output
+		if (this._lastResponse?.result?.messages){
+			for(const msg of this._lastResponse.result.messages){
+				this.sendEvent('output', msg, this._sourceFile, ln, 1);
+			}
 		}
 
+		// if 'log(...)' found in source -> send argument to debug console
+		// const matches = /log\((.*)\)/.exec(line);
+		// if (matches && matches.length === 2) {
+		// 	this.sendEvent('output', matches[1], this._sourceFile, ln, matches.index);
+		// }
+
 		// if pattern 'exception(...)' found in source -> throw named exception
-		const matches2 = /exception\((.*)\)/.exec(line);
-		if (matches2 && matches2.length === 2) {
-			const exception = matches2[1].trim();
-			if (this._namedException === exception) {
-				this.sendEvent('stopOnException', exception);
-				return true;
-			} else {
-				if (this._otherExceptions) {
-					this.sendEvent('stopOnException', undefined);
-					return true;
-				}
-			}
-		} else {
-			// if word 'exception' found in source -> throw exception
-			if (line.indexOf('exception') >= 0) {
-				if (this._otherExceptions) {
-					this.sendEvent('stopOnException', undefined);
-					return true;
-				}
-			}
-		}
+		// const matches2 = /exception\((.*)\)/.exec(line);
+		// if (matches2 && matches2.length === 2) {
+		// 	const exception = matches2[1].trim();
+		// 	if (this._namedException === exception) {
+		// 		this.sendEvent('stopOnException', exception);
+		// 		return true;
+		// 	} else {
+		// 		if (this._otherExceptions) {
+		// 			this.sendEvent('stopOnException', undefined);
+		// 			return true;
+		// 		}
+		// 	}
+		// } else {
+		// 	// if word 'exception' found in source -> throw exception
+		// 	if (line.indexOf('exception') >= 0) {
+		// 		if (this._otherExceptions) {
+		// 			this.sendEvent('stopOnException', undefined);
+		// 			return true;
+		// 		}
+		// 	}
+		// }
 
 		// nothing interesting found -> continue
 		return false;
