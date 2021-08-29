@@ -134,7 +134,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	/**
 	 * Continue execution to the end/beginning.
 	 */
-	public async continue(reverse: boolean) : Promise<void> {
+	public async continue(reverse: boolean): Promise<void> {
 
 		while (!await this.executeLine(this._currentLine, reverse)) {
 			if (this.updateCurrentLine(reverse)) {
@@ -149,7 +149,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	/**
 	 * Step to the next/previous non empty line.
 	 */
-	public async step(instruction: boolean, reverse: boolean) : Promise<void> {
+	public async step(instruction: boolean, reverse: boolean): Promise<void> {
 
 		if (instruction) {
 			if (reverse) {
@@ -401,7 +401,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 							value: localVar.value[property]
 						});
 					}
-					a.push({name: localVar.key, value: props });
+					a.push({ name: localVar.key, value: props });
 				} else {
 					a.push({
 						name: localVar.key,
@@ -515,7 +515,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		const line = this.getLine(ln);
 		const request: FitnesseRequest = {
 			lineNumber: ln,
-			control : 'x',
+			control: 'x',
 			statement: line
 		};
 
@@ -585,17 +585,20 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		}
 
 		// if any messages came back, we will dump to output
-		if (this._lastResponse?.result?.messages){
-			for(const msg of this._lastResponse.result.messages){
+		if (this._lastResponse?.result?.messages) {
+			for (const msg of this._lastResponse.result.messages) {
 				this.sendEvent('output', msg, this._sourceFile, ln, 1);
 			}
 		}
 
-		// if 'log(...)' found in source -> send argument to debug console
-		// const matches = /log\((.*)\)/.exec(line);
-		// if (matches && matches.length === 2) {
-		// 	this.sendEvent('output', matches[1], this._sourceFile, ln, matches.index);
-		// }
+		if (this._lastResponse?.result?.error) {
+			const errModel = this._lastResponse.result.error;
+
+			for (const msg of errModel.messages) {
+				this.sendEvent('stopOnException', errModel.code ?? '' + msg);
+			}
+			return true;
+		}
 
 		// if pattern 'exception(...)' found in source -> throw named exception
 		// const matches2 = /exception\((.*)\)/.exec(line);

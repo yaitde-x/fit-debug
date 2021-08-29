@@ -24,7 +24,7 @@ export interface StateVar {
 }
 
 export interface ExecutionError {
-    code: number;
+    code: string;
     stack: string[];
     messages: string[];
 }

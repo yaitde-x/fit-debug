@@ -7,9 +7,6 @@
 !2 Test setup includes:
 .#1 Set system time
 .#2 Add Paccar Customer
-.#3 Add Customer to Paccar Interface Options
-.#4 Check use PRW in Inerface Options
-
 
 !2 Scenarios covered in this test:
 .#5 Permission
@@ -53,61 +50,9 @@ This injects test metadata into the test runtime environment
 |txtCustomer|Company Name|Go!|
 |PACCAR|Paccar Warranty Customer|TRUE|
 
-!|Set Form Fields|
-|WarrantyAccount|Go!|
-|true|TRUE|
-
-!|Set Form Fields|
-|BillToAddress.Address1|BillToAddress.Address2|BillToAddress.City|BillToAddress.Region|BillToAddress.PostalCode|BillToAddress.TaxBody|TaxStatus|Payment Terms|Salesman|BillToAddress.Country|BillToAddress.County|Go!|
-|123 North Main|Suite A|Springfield|IL|98374|IL00000|Tax1|Net 10|Demo|USA|Greene|TRUE|
-
-!|Set Form Fields|
-|Salutation|FirstName|MI|LastName|Title|Go!|
-|Mr.|Bill|H|Jones|Warranty Guy|TRUE|
-
-!|Set Form Fields|
-|Communications.OfficePhone|Communications.ShopPhone|Communications.CellPhone|Communications.Fax|Communications.EmailAddress|Communications.AllowEmail|Labor Accounting|Parts Accounting|Go!|
-|7776665555|8883232|1234567890|2223334444|abcd@dddddd.com|True|Retail|Retail-Parts|TRUE|
-
-!|Set Form Fields|
-|Credit Card|Charge|Go!|
-|True|True|True|
-
-!|Inspect Form Fields|
-|Cash|Check|Credit Card|COD|Charge|
-|True|False|True|False|True|
-
-!|Set Form Fields|
-|Default Payment Method|Go!|
-|Cash|True|
-
-!|Set form fields|
-|Outside Parts Salesperson|Go!|
-|FF11|True|
-
-!|Set Form Fields|
-|CreditLimit|PerformCreditCheck|Go!|
-|50000.00|False|True|
-
-!|Set Form Fields|
-|Communications.EmailAddress|Go!|
-|comm@dddddd.com|True|
-
 !|Perform action|Save|
 
 !|Check|that the field|vtlVin|is in error|False|
-|Check|that the field|txtChassis                    |is in error|False|
-|Check|that the field|txtModel                      |is in error|False|
-|Check|that the field|cboMeterType                  |is in error|False|
-|Check|that the field|txtMeterReading               |is in error|False|
-|Check|that the field|txtEngineHours                |is in error|False|
-|Check|that the field|grpAction                     |is in error|False|
-|Check|that the field|grpClaimType                  |is in error|False|
-|Check|that the field|cboClaimCategory              |is in error|True |
-|Check|that the field|cboDivisionCode               |is in error|False|
-|Check|that the field|txtPriorApprovalID            |is in error|False|
-|Check|that the field|txtServiceMaterialSerialNumber|is in error|False|
-|Check|that the field|txtCampaignCode        |is in error|False|
 
 !|Inspect form fields|
 |vtlVin|txtChassis|txtModel|cboMeterType|txtMeterReading|txtEngineHours|grpAction|grpClaimType|cboClaimCategory|cboDivisionCode|chkDSFW|txtPriorApprovalID|txtServiceMaterialSerialNumber|txtCampaignCode|
