@@ -512,11 +512,19 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			return false;
 		}
 
-		const line = this.getLine(ln);
+		let buffer = '';
+		let fixtureLn = ln;
+		let line = this.getLine(fixtureLn);
+
+		while (line && line.trim().length > 0) {
+			buffer += line + '\r\n';
+			line = this.getLine(++fixtureLn);
+		};
+
 		const request: FitnesseRequest = {
 			lineNumber: ln,
 			control: 'x',
-			statement: line
+			statement: buffer
 		};
 
 		this._lastResponse = await this._fitnesseApi.exec(request);
@@ -530,59 +538,59 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		}
 
 		// find variable accesses
-		let reg0 = /\$([a-z][a-z0-9]*)(=(false|true|[0-9]+(\.[0-9]+)?|\".*\"|\{.*\}))?/ig;
-		let matches0: RegExpExecArray | null;
-		while (matches0 = reg0.exec(line)) {
-			if (matches0.length === 5) {
+		// let reg0 = /\$([a-z][a-z0-9]*)(=(false|true|[0-9]+(\.[0-9]+)?|\".*\"|\{.*\}))?/ig;
+		// let matches0: RegExpExecArray | null;
+		// while (matches0 = reg0.exec(line)) {
+		// 	if (matches0.length === 5) {
 
-				let access: string | undefined;
+		// 		let access: string | undefined;
 
-				const name = matches0[1];
-				const value = matches0[3];
+		// 		const name = matches0[1];
+		// 		const value = matches0[3];
 
-				let v: IRuntimeVariable = { name, value };
+		// 		let v: IRuntimeVariable = { name, value };
 
-				if (value && value.length > 0) {
-					if (value === 'true') {
-						v.value = true;
-					} else if (value === 'false') {
-						v.value = false;
-					} else if (value[0] === '"') {
-						v.value = value.substr(1, value.length - 2);
-					} else if (value[0] === '{') {
-						v.value = [{
-							name: 'fBool',
-							value: true
-						}, {
-							name: 'fInteger',
-							value: 123
-						}, {
-							name: 'fString',
-							value: 'hello'
-						}];
-					} else {
-						v.value = parseFloat(value);
-					}
+		// 		if (value && value.length > 0) {
+		// 			if (value === 'true') {
+		// 				v.value = true;
+		// 			} else if (value === 'false') {
+		// 				v.value = false;
+		// 			} else if (value[0] === '"') {
+		// 				v.value = value.substr(1, value.length - 2);
+		// 			} else if (value[0] === '{') {
+		// 				v.value = [{
+		// 					name: 'fBool',
+		// 					value: true
+		// 				}, {
+		// 					name: 'fInteger',
+		// 					value: 123
+		// 				}, {
+		// 					name: 'fString',
+		// 					value: 'hello'
+		// 				}];
+		// 			} else {
+		// 				v.value = parseFloat(value);
+		// 			}
 
-					if (this._variables.has(name)) {
-						// the first write access to a variable is the "declaration" and not a "write access"
-						access = 'write';
-					}
-					this._variables.set(name, v);
-				} else {
-					if (this._variables.has(name)) {
-						// variable must exist in order to trigger a read access 
-						access = 'read';
-					}
-				}
+		// 			if (this._variables.has(name)) {
+		// 				// the first write access to a variable is the "declaration" and not a "write access"
+		// 				access = 'write';
+		// 			}
+		// 			this._variables.set(name, v);
+		// 		} else {
+		// 			if (this._variables.has(name)) {
+		// 				// variable must exist in order to trigger a read access 
+		// 				access = 'read';
+		// 			}
+		// 		}
 
-				const accessType = this._breakAddresses.get(name);
-				if (access && accessType && accessType.indexOf(access) >= 0) {
-					this.sendEvent('stopOnDataBreakpoint', access);
-					return true;
-				}
-			}
-		}
+		// 		const accessType = this._breakAddresses.get(name);
+		// 		if (access && accessType && accessType.indexOf(access) >= 0) {
+		// 			this.sendEvent('stopOnDataBreakpoint', access);
+		// 			return true;
+		// 		}
+		// 	}
+		// }
 
 		// if any messages came back, we will dump to output
 		if (this._lastResponse?.result?.messages) {

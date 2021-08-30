@@ -75,6 +75,29 @@ export class MockFitnesseApi implements FitnesseApi {
 
     private _requestId: number = 0;
 
+    private htmlBuilder(fixture: string): string {
+        const lines = fixture.split(/\r?\n/);
+        let html = '<table>';
+
+        for (const ln of lines) {
+            if (ln.trim().length > 0) {
+                html += '<tr>';
+                const parts = ln.trim()
+                    .split('|')
+                    .filter(part => part !== '|' && part !== '' && part !== '!');
+
+                for (const part of parts) {
+                    html += '<td>' + part + '</td>';
+                }
+
+                html += '</tr>';
+            }
+        }
+
+        html += '</table>';
+        return html;
+    };
+
     public async connect(server: string, port: number): Promise<void> {
 
         if (this._state === STATE_CONNECTED) {
@@ -94,6 +117,11 @@ export class MockFitnesseApi implements FitnesseApi {
         this._requestId++;
         request.requestId = this._requestId + "";
 
+        if (request.statement) {
+            request.statement = Buffer.from(this.htmlBuilder(request.statement)).toString('base64');
+        }
+        request.statement += '\r\n\r\n';
+        
         await this._client.write(JSON.stringify(request));
 
         const responseBuffer: string | Buffer | undefined = await this.promiseWithTimeout(this._client.read(), 300);
