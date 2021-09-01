@@ -141,7 +141,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 
 		// make VS Code support completion in REPL
 		response.body.supportsCompletionsRequest = true;
-		response.body.completionTriggerCharacters = [ ".", "[" ];
+		response.body.completionTriggerCharacters = [".", "["];
 
 		// make VS Code send cancel request
 		response.body.supportsCancelRequest = true;
@@ -216,7 +216,9 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		await this._configurationDone.wait(1000);
 
 		// start the program in the runtime
-		await this._runtime.start(args.program, !!args.stopOnEntry);
+		await this._runtime.start(args.program, !!args.stopOnEntry, () => {
+			this.sendResponse(response);
+		});
 
 		// if (args.compileError) {
 		// 	// simulate a compile/build error in "launch" request:
@@ -228,7 +230,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		// 		showUser: args.compileError === 'show' ? true : (args.compileError === 'hide' ? false : undefined)
 		// 	});
 		// } else {
-		this.sendResponse(response);
+		
 		// }
 	}
 
@@ -244,7 +246,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		const actualBreakpoints0 = clientLines.map(async l => {
 			const { verified, line, id } = await this._runtime.setBreakPoint(path, this.convertClientLineToDebugger(l));
 			const bp = new Breakpoint(verified, this.convertDebuggerLineToClient(line)) as DebugProtocol.Breakpoint;
-			bp.id= id;
+			bp.id = id;
 			return bp;
 		});
 		const actualBreakpoints = await Promise.all<DebugProtocol.Breakpoint>(actualBreakpoints0);
@@ -346,7 +348,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 				}
 				if (typeof f.instruction === 'number') {
 					const address = this.formatAddress(f.instruction);
-					sf.name = `${f.name} ${address}`; 
+					sf.name = `${f.name} ${address}`;
 					sf.instructionPointerReference = address;
 				}
 
@@ -374,7 +376,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request): Promise<void> {
 
 		let vs: IRuntimeVariable[] = [];
-		
+
 		const v = this._variableHandles.get(args.variablesReference);
 		if (v === 'locals') {
 			vs = this._runtime.getLocalVariables();
@@ -409,25 +411,25 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		this._runtime.continue(false).then(() => {
+		this._runtime.continue(false, () => {
 			this.sendResponse(response);
 		});
 	}
 
 	protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
-		this._runtime.continue(true).then(() => {
+		this._runtime.continue(true, () => {
 			this.sendResponse(response);
 		});
- 	}
+	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this._runtime.step(args.granularity === 'instruction', false).then(() => {
+		this._runtime.step(args.granularity === 'instruction', false, () => {
 			this.sendResponse(response);
 		});
 	}
 
 	protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {
-		this._runtime.step(args.granularity === 'instruction', true).then(() => {
+		this._runtime.step(args.granularity === 'instruction', true, () => {
 			this.sendResponse(response);
 		});
 	}
@@ -465,7 +467,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 				if (matches && matches.length === 2) {
 					const mbp = await this._runtime.setBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
 					const bp = new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this._runtime.sourceFile)) as DebugProtocol.Breakpoint;
-					bp.id= mbp.id;
+					bp.id = mbp.id;
 					this.sendEvent(new BreakpointEvent('new', bp));
 					reply = `breakpoint created`;
 				} else {
@@ -474,7 +476,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 						const mbp = this._runtime.clearBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
 						if (mbp) {
 							const bp = new Breakpoint(false) as DebugProtocol.Breakpoint;
-							bp.id= mbp.id;
+							bp.id = mbp.id;
 							this.sendEvent(new BreakpointEvent('removed', bp));
 							reply = `breakpoint deleted`;
 						}
@@ -490,7 +492,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 						}
 					}
 				}
-				// fall through
+			// fall through
 
 			default:
 				if (args.expression.startsWith('$')) {
@@ -535,7 +537,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 					format: `variable '{lexpr}' not found`,
 					variables: { lexpr: args.expression },
 					showUser: true
-				});	
+				});
 			}
 		} else {
 			this.sendErrorResponse(response, {
@@ -581,18 +583,18 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 	protected dataBreakpointInfoRequest(response: DebugProtocol.DataBreakpointInfoResponse, args: DebugProtocol.DataBreakpointInfoArguments): void {
 
 		response.body = {
-            dataId: null,
-            description: "cannot break on data access",
-            accessTypes: undefined,
-            canPersist: false
-        };
+			dataId: null,
+			description: "cannot break on data access",
+			accessTypes: undefined,
+			canPersist: false
+		};
 
 		if (args.variablesReference && args.name) {
 			const v = this._variableHandles.get(args.variablesReference);
 			if (v === 'globals') {
 				response.body.dataId = args.name;
 				response.body.description = args.name;
-				response.body.accessTypes = [ "write" ];
+				response.body.accessTypes = ["write"];
 				response.body.canPersist = true;
 			} else {
 				response.body.dataId = args.name;
@@ -661,7 +663,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 			this._cancellationTokens.set(args.requestId, true);
 		}
 		if (args.progressId) {
-			this._cancelledProgressId= args.progressId;
+			this._cancelledProgressId = args.progressId;
 		}
 	}
 
@@ -672,9 +674,9 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		const count = args.instructionCount;
 
 		const isHex = args.memoryReference.startsWith('0x');
-		const pad = isHex ? args.memoryReference.length-2 : args.memoryReference.length;
+		const pad = isHex ? args.memoryReference.length - 2 : args.memoryReference.length;
 
-		const instructions = this._runtime.disassemble(baseAddress+offset, count).map(instruction => {
+		const instructions = this._runtime.disassemble(baseAddress + offset, count).map(instruction => {
 			const address = instruction.address.toString(isHex ? 16 : 10).padStart(pad, '0');
 			return {
 				address: isHex ? `0x${address}` : `${address}`,
@@ -710,9 +712,9 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 
 	protected customRequest(command: string, response: DebugProtocol.Response, args: any) {
 		if (command === 'toggleFormatting') {
-			this._valuesInHex = ! this._valuesInHex;
+			this._valuesInHex = !this._valuesInHex;
 			if (this._useInvalidatedEvent) {
-				this.sendEvent(new InvalidatedEvent( ['variables'] ));
+				this.sendEvent(new InvalidatedEvent(['variables']));
 			}
 			this.sendResponse(response);
 		} else {
@@ -724,7 +726,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 
 	private convertToRuntime(value: string): IRuntimeVariableType {
 
-		value= value.trim();
+		value = value.trim();
 
 		if (value === 'true') {
 			return true;
@@ -733,7 +735,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 			return false;
 		}
 		if (value[0] === '\'' || value[0] === '"') {
-			return value.substr(1, value.length-2);
+			return value.substr(1, value.length - 2);
 		}
 		const n = parseFloat(value);
 		if (!isNaN(n)) {
@@ -775,7 +777,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 					break;
 				default:
 					dapVariable.value = typeof v.value;
-					break;		
+					break;
 			}
 		}
 

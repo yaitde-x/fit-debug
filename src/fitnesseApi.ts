@@ -1,6 +1,13 @@
 
 import * as net from 'net';
-import PromiseSocket from 'promise-socket';
+import { DebuggerCallback } from './fitnesseRuntimeProxy';
+//import PromiseSocket from 'promise-socket';
+// import WebSocketAsPromised = require('websocket-as-promised');
+// import WebSocket = require('ws');
+
+export interface FitnesseApiCallback {
+    (response: FitnesseResponse): void;
+}
 export interface FitnesseRequest {
     requestId?: string;
     control: string;
@@ -46,8 +53,8 @@ export interface FitnesseResponse {
 }
 
 export interface FitnesseApi {
-    connect(server: string, port: number): Promise<void>
-    exec(request: FitnesseRequest): Promise<FitnesseResponse>;
+    connect(server: string, port: number, callback: DebuggerCallback): void
+    exec(request: FitnesseRequest, callback: FitnesseApiCallback): void;
 }
 
 
@@ -58,14 +65,26 @@ export class MockFitnesseApi implements FitnesseApi {
     rootPath: string = '/Users/sakamoto/Temp';
 
     private _socket: net.Socket;
-    private _client: PromiseSocket<net.Socket>;
+    //private _client: PromiseSocket<net.Socket>;
+    //private _client?: WebSocketAsPromised;
+
+    // eslint-disable-next-line no-use-before-define
+    private _callback?: FitnesseApiCallback;
+    //private _buffer?: string;
+
     private _state: number = STATE_DISCONNECTED;
 
     constructor() {
         const that = this;
 
         this._socket = new net.Socket();
-        this._client = new PromiseSocket(this._socket);
+        //this._client = new PromiseSocket(this._socket);
+
+        this._socket.on('data', function (data) {
+            if (that._callback) {
+                that._callback(<FitnesseResponse>JSON.parse(data.toString('utf-8')));
+            }
+        });
 
         this._socket.on('close', function () {
             that._state = STATE_DISCONNECTED;
@@ -98,50 +117,74 @@ export class MockFitnesseApi implements FitnesseApi {
         return html;
     };
 
-    public async connect(server: string, port: number): Promise<void> {
+    public connect(server: string, port: number, callback: DebuggerCallback): void {
+        const that = this;
 
         if (this._state === STATE_CONNECTED) {
             return;
         }
 
-        await this._client.connect(port, server);
+        // this._client = new WebSocketAsPromised("ws://" + server + ":" + port, {
+        //     createWebSocket: url => new WebSocket(url),
+        //     extractMessageData: event => event, // <- this is important
+        // });
 
-        console.log('Connected');
-        this._state = STATE_CONNECTED;
+        // this._client.onMessage.addListener(responseBuffer => {
+
+        //     if (that._callback) {
+        //         that._callback(<FitnesseResponse>JSON.parse(<string>responseBuffer));
+        //     }
+        //     //return <FitnesseResponse>JSON.parse(<string>responseBuffer);
+        // });
+
+        //await this._client.open();
+
+        //await this._client.connect(port, server);
+        this._socket.connect(port, server, () => {
+            console.log('Connected');
+            that._state = STATE_CONNECTED;
+            callback();
+        });
 
         return;
     }
 
-    public async exec(request: FitnesseRequest): Promise<FitnesseResponse> {
+    public exec(request: FitnesseRequest, callback: FitnesseApiCallback): void {
 
         this._requestId++;
+        this._callback = callback;
+        //this._buffer = '';
+
         request.requestId = this._requestId + "";
 
         if (request.statement) {
             request.statement = Buffer.from(this.htmlBuilder(request.statement)).toString('base64');
         }
-        request.statement += '\r\n\r\n';
-        
-        await this._client.write(JSON.stringify(request));
+        request.statement;
 
-        const responseBuffer: string | Buffer | undefined = await this.promiseWithTimeout(this._client.read(), 300);
+        this._socket.write(JSON.stringify(request) + '\r\n\r\n');
 
-        if (responseBuffer && responseBuffer instanceof Buffer) {
-            const stringBuf = responseBuffer.toString('utf-8');
-            return <FitnesseResponse>JSON.parse(stringBuf);
-        }
-        return <FitnesseResponse>JSON.parse(<string>responseBuffer);
+        //this._client?.send(JSON.stringify(request) + '\r\n\r\n');
+        //await this._client.write(JSON.stringify(request) + '\r\n\r\n');
+
+        // const responseBuffer: string | Buffer | undefined = await this.promiseWithTimeout(this._client.read(), 300);
+
+        // if (responseBuffer && responseBuffer instanceof Buffer) {
+        //     const stringBuf = responseBuffer.toString('utf-8');
+        //     return <FitnesseResponse>JSON.parse(stringBuf);
+        // }
+        // return <FitnesseResponse>JSON.parse(<string>responseBuffer);
     }
 
-    private promiseWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-        //let timeoutId: NodeJS.Timeout;
-        const timeoutPromise = new Promise<T>((_, reject) => {
-            const timeoutId = setTimeout(() => {
-                clearTimeout(timeoutId);
-                reject(new Error('Request timed out'));
-            }, ms);
-        });
+    // private promiseWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    //     //let timeoutId: NodeJS.Timeout;
+    //     const timeoutPromise = new Promise<T>((_, reject) => {
+    //         const timeoutId = setTimeout(() => {
+    //             clearTimeout(timeoutId);
+    //             reject(new Error('Request timed out'));
+    //         }, ms);
+    //     });
 
-        return Promise.race([promise, timeoutPromise]);
-    }
+    //     return Promise.race([promise, timeoutPromise]);
+    // }
 }

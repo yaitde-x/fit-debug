@@ -5,6 +5,9 @@
 import { EventEmitter } from 'events';
 import { FitnesseApi, FitnesseRequest, FitnesseResponse } from './fitnesseApi';
 
+export interface DebuggerCallback {
+	(): void;
+}
 export interface FileAccessor {
 	readFile(path: string): Promise<string>;
 }
@@ -115,41 +118,54 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public async start(program: string, stopOnEntry: boolean): Promise<void> {
+	public async start(program: string, stopOnEntry: boolean, callback: DebuggerCallback): Promise<void> {
 
 		await this.loadSource(program);
 
 		await this.verifyBreakpoints(this._sourceFile);
 
-		await this._fitnesseApi.connect('127.0.0.1', 1111);
+		await this._fitnesseApi.connect('127.0.0.1', 1111, () => {
 
-		if (this.debug && stopOnEntry) {
-			this.findNextStatement(false, 'stopOnEntry');
-		} else {
-			// we just start to run until we hit a breakpoint or an exception
-			this.continue(false);
-		}
+			callback();
+			
+			if (this.debug && stopOnEntry) {
+				this.findNextStatement(false, 'stopOnEntry');
+			} else {
+				// we just start to run until we hit a breakpoint or an exception
+				this.continue(false, () => {});
+			}
+
+		});
 	}
 
 	/**
 	 * Continue execution to the end/beginning.
 	 */
-	public async continue(reverse: boolean): Promise<void> {
+	public continue(reverse: boolean, callback: DebuggerCallback): void {
+		let that = this;
 
-		while (!await this.executeLine(this._currentLine, reverse)) {
-			if (this.updateCurrentLine(reverse)) {
-				break;
+		that.executeLine(this._currentLine, reverse, () => {
+			if (that.updateCurrentLine(reverse)) {
+				callback();
+				return;
 			}
-			if (this.findNextStatement(reverse)) {
-				break;
+			if (that.findNextStatement(reverse)) {
+				callback();
+				return;
 			}
-		}
+			that.continue(reverse, callback);
+		});
+
+		// while (!this.executeLine(this._currentLine, reverse, )) {
+
+		// }
+
 	}
 
 	/**
 	 * Step to the next/previous non empty line.
 	 */
-	public async step(instruction: boolean, reverse: boolean): Promise<void> {
+	public step(instruction: boolean, reverse: boolean, callback: DebuggerCallback): void {
 
 		if (instruction) {
 			if (reverse) {
@@ -159,11 +175,18 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			}
 			this.sendEvent('stopOnStep');
 		} else {
-			if (!await this.executeLine(this._currentLine, reverse)) {
+			this.executeLine(this._currentLine, reverse, () => {
 				if (!this.updateCurrentLine(reverse)) {
 					this.findNextStatement(reverse, 'stopOnStep');
 				}
-			}
+			});
+
+
+			// if (!await this.executeLine(this._currentLine, reverse)) {
+			// 	if (!this.updateCurrentLine(reverse)) {
+			// 		this.findNextStatement(reverse, 'stopOnStep');
+			// 	}
+			// }
 		}
 	}
 
@@ -506,10 +529,10 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		return false;
 	}
 
-	private async executeLine(ln: number, reverse: boolean): Promise<boolean> {
+	private executeLine(ln: number, reverse: boolean, callback: DebuggerCallback): void {
 
 		if (!this.debug) {
-			return false;
+			callback();
 		}
 
 		let buffer = '';
@@ -527,112 +550,115 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			statement: buffer
 		};
 
-		this._lastResponse = await this._fitnesseApi.exec(request);
+		this._fitnesseApi.exec(request, (response) => {
 
-		while (reverse ? this._instruction >= this._starts[ln] : this._instruction < this._ends[ln]) {
-			reverse ? this._instruction-- : this._instruction++;
-			if (this._instructionBreakpoints.has(this._instruction)) {
-				this.sendEvent('stopOnInstructionBreakpoint');
-				return true;
+			this._lastResponse = response;
+
+			while (reverse ? this._instruction >= this._starts[ln] : this._instruction < this._ends[ln]) {
+				reverse ? this._instruction-- : this._instruction++;
+				if (this._instructionBreakpoints.has(this._instruction)) {
+					this.sendEvent('stopOnInstructionBreakpoint');
+				}
 			}
-		}
 
-		// find variable accesses
-		// let reg0 = /\$([a-z][a-z0-9]*)(=(false|true|[0-9]+(\.[0-9]+)?|\".*\"|\{.*\}))?/ig;
-		// let matches0: RegExpExecArray | null;
-		// while (matches0 = reg0.exec(line)) {
-		// 	if (matches0.length === 5) {
+			// find variable accesses
+			// let reg0 = /\$([a-z][a-z0-9]*)(=(false|true|[0-9]+(\.[0-9]+)?|\".*\"|\{.*\}))?/ig;
+			// let matches0: RegExpExecArray | null;
+			// while (matches0 = reg0.exec(line)) {
+			// 	if (matches0.length === 5) {
 
-		// 		let access: string | undefined;
+			// 		let access: string | undefined;
 
-		// 		const name = matches0[1];
-		// 		const value = matches0[3];
+			// 		const name = matches0[1];
+			// 		const value = matches0[3];
 
-		// 		let v: IRuntimeVariable = { name, value };
+			// 		let v: IRuntimeVariable = { name, value };
 
-		// 		if (value && value.length > 0) {
-		// 			if (value === 'true') {
-		// 				v.value = true;
-		// 			} else if (value === 'false') {
-		// 				v.value = false;
-		// 			} else if (value[0] === '"') {
-		// 				v.value = value.substr(1, value.length - 2);
-		// 			} else if (value[0] === '{') {
-		// 				v.value = [{
-		// 					name: 'fBool',
-		// 					value: true
-		// 				}, {
-		// 					name: 'fInteger',
-		// 					value: 123
-		// 				}, {
-		// 					name: 'fString',
-		// 					value: 'hello'
-		// 				}];
-		// 			} else {
-		// 				v.value = parseFloat(value);
-		// 			}
+			// 		if (value && value.length > 0) {
+			// 			if (value === 'true') {
+			// 				v.value = true;
+			// 			} else if (value === 'false') {
+			// 				v.value = false;
+			// 			} else if (value[0] === '"') {
+			// 				v.value = value.substr(1, value.length - 2);
+			// 			} else if (value[0] === '{') {
+			// 				v.value = [{
+			// 					name: 'fBool',
+			// 					value: true
+			// 				}, {
+			// 					name: 'fInteger',
+			// 					value: 123
+			// 				}, {
+			// 					name: 'fString',
+			// 					value: 'hello'
+			// 				}];
+			// 			} else {
+			// 				v.value = parseFloat(value);
+			// 			}
 
-		// 			if (this._variables.has(name)) {
-		// 				// the first write access to a variable is the "declaration" and not a "write access"
-		// 				access = 'write';
-		// 			}
-		// 			this._variables.set(name, v);
-		// 		} else {
-		// 			if (this._variables.has(name)) {
-		// 				// variable must exist in order to trigger a read access 
-		// 				access = 'read';
-		// 			}
-		// 		}
+			// 			if (this._variables.has(name)) {
+			// 				// the first write access to a variable is the "declaration" and not a "write access"
+			// 				access = 'write';
+			// 			}
+			// 			this._variables.set(name, v);
+			// 		} else {
+			// 			if (this._variables.has(name)) {
+			// 				// variable must exist in order to trigger a read access 
+			// 				access = 'read';
+			// 			}
+			// 		}
 
-		// 		const accessType = this._breakAddresses.get(name);
-		// 		if (access && accessType && accessType.indexOf(access) >= 0) {
-		// 			this.sendEvent('stopOnDataBreakpoint', access);
-		// 			return true;
-		// 		}
-		// 	}
-		// }
+			// 		const accessType = this._breakAddresses.get(name);
+			// 		if (access && accessType && accessType.indexOf(access) >= 0) {
+			// 			this.sendEvent('stopOnDataBreakpoint', access);
+			// 			return true;
+			// 		}
+			// 	}
+			// }
 
-		// if any messages came back, we will dump to output
-		if (this._lastResponse?.result?.messages) {
-			for (const msg of this._lastResponse.result.messages) {
-				this.sendEvent('output', msg, this._sourceFile, ln, 1);
+			// if any messages came back, we will dump to output
+			if (this._lastResponse?.result?.messages) {
+				for (const msg of this._lastResponse.result.messages) {
+					this.sendEvent('output', msg, this._sourceFile, ln, 1);
+				}
 			}
-		}
 
-		if (this._lastResponse?.result?.error) {
-			const errModel = this._lastResponse.result.error;
+			if (this._lastResponse?.result?.error) {
+				const errModel = this._lastResponse.result.error;
 
-			for (const msg of errModel.messages) {
-				this.sendEvent('stopOnException', errModel.code ?? '' + msg);
+				for (const msg of errModel.messages) {
+					this.sendEvent('stopOnException', errModel.code ?? '' + msg);
+				}
 			}
-			return true;
-		}
 
-		// if pattern 'exception(...)' found in source -> throw named exception
-		// const matches2 = /exception\((.*)\)/.exec(line);
-		// if (matches2 && matches2.length === 2) {
-		// 	const exception = matches2[1].trim();
-		// 	if (this._namedException === exception) {
-		// 		this.sendEvent('stopOnException', exception);
-		// 		return true;
-		// 	} else {
-		// 		if (this._otherExceptions) {
-		// 			this.sendEvent('stopOnException', undefined);
-		// 			return true;
-		// 		}
-		// 	}
-		// } else {
-		// 	// if word 'exception' found in source -> throw exception
-		// 	if (line.indexOf('exception') >= 0) {
-		// 		if (this._otherExceptions) {
-		// 			this.sendEvent('stopOnException', undefined);
-		// 			return true;
-		// 		}
-		// 	}
-		// }
+			// if pattern 'exception(...)' found in source -> throw named exception
+			// const matches2 = /exception\((.*)\)/.exec(line);
+			// if (matches2 && matches2.length === 2) {
+			// 	const exception = matches2[1].trim();
+			// 	if (this._namedException === exception) {
+			// 		this.sendEvent('stopOnException', exception);
+			// 		return true;
+			// 	} else {
+			// 		if (this._otherExceptions) {
+			// 			this.sendEvent('stopOnException', undefined);
+			// 			return true;
+			// 		}
+			// 	}
+			// } else {
+			// 	// if word 'exception' found in source -> throw exception
+			// 	if (line.indexOf('exception') >= 0) {
+			// 		if (this._otherExceptions) {
+			// 			this.sendEvent('stopOnException', undefined);
+			// 			return true;
+			// 		}
+			// 	}
+			// }
 
-		// nothing interesting found -> continue
-		return false;
+			// nothing interesting found -> continue
+			callback();
+		});
+
+		//return false;
 	}
 
 	private async verifyBreakpoints(path: string): Promise<void> {
