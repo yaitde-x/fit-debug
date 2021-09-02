@@ -110,6 +110,9 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	// private _namedException: string | undefined;
 	// private _otherExceptions = false;
 
+	public getLastResponse() : FitnesseResponse| undefined {
+		return this._lastResponse;
+	}
 
 	constructor(private _fileAccessor: FileAccessor, private _fitnesseApi: FitnesseApi) {
 		super();
@@ -627,8 +630,9 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 				const errModel = this._lastResponse.result.error;
 
 				for (const msg of errModel.messages) {
-					this.sendEvent('stopOnException', errModel.code ?? '' + msg);
+					this.sendEvent('stopOnException', (errModel.code ?? '') + msg);
 				}
+				return;
 			}
 
 			// if pattern 'exception(...)' found in source -> throw named exception

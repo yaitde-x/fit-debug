@@ -85,7 +85,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		});
 		this._runtime.on('stopOnException', (exception) => {
 			if (exception) {
-				this.sendEvent(new StoppedEvent(`exception(${exception})`, FitnesseDebugSession.threadID));
+				this.sendEvent(new StoppedEvent(`exception`, FitnesseDebugSession.threadID, exception));
 			} else {
 				this.sendEvent(new StoppedEvent('exception', FitnesseDebugSession.threadID));
 			}
@@ -230,7 +230,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		// 		showUser: args.compileError === 'show' ? true : (args.compileError === 'hide' ? false : undefined)
 		// 	});
 		// } else {
-		
+
 		// }
 	}
 
@@ -308,14 +308,24 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 	}
 
 	protected exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
+		const lastResponse = this._runtime.getLastResponse();
+		const error = lastResponse?.result?.error;
+
+		let stack = '';
+
+		if (error?.stack && error?.stack.length > 0)
+		{
+			stack = error?.stack.join('\n');
+		}
+
 		response.body = {
-			exceptionId: 'Exception ID',
-			description: 'This is a descriptive description of the exception.',
+			exceptionId: error?.code + '',
+			description: error?.messages[0],
 			breakMode: 'always',
 			details: {
-				message: 'Message contained in the exception.',
-				typeName: 'Short type name of the exception object',
-				stackTrace: 'stack frame 1\nstack frame 2',
+				message: error?.messages[0],
+				typeName: 'exceptiontype',
+				stackTrace: stack
 			}
 		};
 		this.sendResponse(response);
