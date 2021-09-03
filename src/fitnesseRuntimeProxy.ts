@@ -550,7 +550,10 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			let result: string = "did not get a result, weird";
 
 			if (response?.result?.messages) {
-				result = response.result.messages[0];
+				let result = '';
+				for(const msg of response.result.messages){
+				result += (msg + '\r\n');
+				}
 			}
 
 			callback(result);

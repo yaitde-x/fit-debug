@@ -14,6 +14,7 @@ import { basename } from 'path';
 import { FitnesseRuntimeProxy, IRuntimeBreakpoint, FileAccessor, IRuntimeVariable, timeout, IRuntimeVariableType } from './fitnesseRuntimeProxy';
 import { Subject } from 'await-notify';
 import { MockFitnesseApi } from './fitnesseApi';
+import { stringify } from 'node:querystring';
 
 /**
  * This interface describes the mock-debug specific launch attributes
@@ -471,8 +472,21 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 
 		switch (args.context) {
 			case 'repl':
-				// handle some REPL commands:
-				// 'evaluate' supports to create and delete breakpoints from the 'repl':
+				
+				if (args.expression.toLocaleLowerCase().startsWith('|')) {
+					this._runtime.runCommand(args.expression, (result) => {
+						response.body = {
+							result: result,
+							type: 'string',
+							variablesReference: 0
+						};
+
+						this.sendResponse(response);
+					});
+
+					return;
+				}	
+
 				const matches = /new +([0-9]+)/.exec(args.expression);
 				if (matches && matches.length === 2) {
 					const mbp = await this._runtime.setBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));

@@ -66,14 +66,8 @@ export class MockFitnesseApi implements FitnesseApi {
     rootPath: string = '/Users/sakamoto/Temp';
 
     private _socket: net.Socket;
-    //private _client: PromiseSocket<net.Socket>;
-    //private _client?: WebSocketAsPromised;
-
     // eslint-disable-next-line no-use-before-define
     private _queue : any;
-
-    //private _buffer?: string;
-
     private _state: number = STATE_DISCONNECTED;
 
     constructor() {
@@ -81,7 +75,6 @@ export class MockFitnesseApi implements FitnesseApi {
 
         this._queue = {};
         this._socket = new net.Socket();
-        //this._client = new PromiseSocket(this._socket);
 
         this._socket.on('data', function (data) {
             const response =<FitnesseResponse>JSON.parse(data.toString('utf-8'));
@@ -130,22 +123,7 @@ export class MockFitnesseApi implements FitnesseApi {
             return;
         }
 
-        // this._client = new WebSocketAsPromised("ws://" + server + ":" + port, {
-        //     createWebSocket: url => new WebSocket(url),
-        //     extractMessageData: event => event, // <- this is important
-        // });
-
-        // this._client.onMessage.addListener(responseBuffer => {
-
-        //     if (that._callback) {
-        //         that._callback(<FitnesseResponse>JSON.parse(<string>responseBuffer));
-        //     }
-        //     //return <FitnesseResponse>JSON.parse(<string>responseBuffer);
-        // });
-
-        //await this._client.open();
-
-        //await this._client.connect(port, server);
+       
         this._socket.connect(port, server, () => {
             console.log('Connected');
             that._state = STATE_CONNECTED;
@@ -168,28 +146,5 @@ export class MockFitnesseApi implements FitnesseApi {
         request.statement;
 
         this._socket.write(JSON.stringify(request) + '\r\n\r\n');
-
-        //this._client?.send(JSON.stringify(request) + '\r\n\r\n');
-        //await this._client.write(JSON.stringify(request) + '\r\n\r\n');
-
-        // const responseBuffer: string | Buffer | undefined = await this.promiseWithTimeout(this._client.read(), 300);
-
-        // if (responseBuffer && responseBuffer instanceof Buffer) {
-        //     const stringBuf = responseBuffer.toString('utf-8');
-        //     return <FitnesseResponse>JSON.parse(stringBuf);
-        // }
-        // return <FitnesseResponse>JSON.parse(<string>responseBuffer);
     }
-
-    // private promiseWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-    //     //let timeoutId: NodeJS.Timeout;
-    //     const timeoutPromise = new Promise<T>((_, reject) => {
-    //         const timeoutId = setTimeout(() => {
-    //             clearTimeout(timeoutId);
-    //             reject(new Error('Request timed out'));
-    //         }, ms);
-    //     });
-
-    //     return Promise.race([promise, timeoutPromise]);
-    // }
 }
