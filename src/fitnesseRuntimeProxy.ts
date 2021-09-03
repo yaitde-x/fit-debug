@@ -1,6 +1,3 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
 
 import { EventEmitter } from 'events';
 import { FitnesseApi, FitnesseRequest, FitnesseResponse } from './fitnesseApi';
@@ -8,6 +5,11 @@ import { FitnesseApi, FitnesseRequest, FitnesseResponse } from './fitnesseApi';
 export interface DebuggerCallback {
 	(): void;
 }
+
+export interface DebuggerCallbackWithResult<T> {
+	(result: T): void;
+}
+
 export interface FileAccessor {
 	readFile(path: string): Promise<string>;
 }
@@ -110,7 +112,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	// private _namedException: string | undefined;
 	// private _otherExceptions = false;
 
-	public getLastResponse() : FitnesseResponse| undefined {
+	public getLastResponse(): FitnesseResponse | undefined {
 		return this._lastResponse;
 	}
 
@@ -130,12 +132,12 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		await this._fitnesseApi.connect('127.0.0.1', 1111, () => {
 
 			callback();
-			
+
 			if (this.debug && stopOnEntry) {
 				this.findNextStatement(false, 'stopOnEntry');
 			} else {
 				// we just start to run until we hit a breakpoint or an exception
-				this.continue(false, () => {});
+				this.continue(false, () => { });
 			}
 
 		});
@@ -384,6 +386,29 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	public clearInstructionBreakpoints(): void {
 		this._instructionBreakpoints.clear();
 	}
+	//number | boolean | string | IRuntimeVariable[]
+	// private convertStateVarValue(value: any): IRuntimeVariableType {
+
+	// 	if (typeof value === 'boolean') {
+	// 		return <boolean>value;
+	// 	} else if (typeof value === 'string') {
+	// 		return <string>value;
+	// 	} else if (typeof value === 'number') {
+	// 		return <number>value;
+	// 	} else if (typeof value === 'object' && value !== null) {
+	// 		let a: IRuntimeVariable[] = [];
+	// 		const props = <StateVar[]> value;
+	// 		for (const prop of props) {
+	// 			a.push({
+	// 				name: prop.key, value: this.convertStateVarValue(prop.value)
+	// 			});
+	// 		}
+
+	// 		return a;
+	// 	}
+
+	// 	return value + '';
+	// }
 
 	public async getGlobalVariables(cancellationToken?: () => boolean): Promise<IRuntimeVariable[]> {
 
@@ -391,21 +416,15 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 		if (this._lastResponse) {
 			for (let globalVar of this._lastResponse.globals) {
-				a.push({
-					name: globalVar.key,
-					value: globalVar.value
-				});
+				a.push(<IRuntimeVariable> globalVar);
+				// a.push({
+				// 	name: globalVar.key,
+				// 	value: this.convertStateVarValue(globalVar.value)
+				// });
 
 				if (cancellationToken && cancellationToken()) {
 					break;
 				}
-			}
-
-			for (const property in this._lastResponse?.state) {
-				a.push({
-					name: 'state.' + property,
-					value: this._lastResponse.state[property]
-				});
 			}
 		}
 
@@ -417,23 +436,11 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 		if (this._lastResponse) {
 			for (let localVar of this._lastResponse.locals) {
-
-				if (localVar.value instanceof Object) {
-					const props: IRuntimeVariable[] = [];
-
-					for (const property in localVar.value) {
-						props.push({
-							name: property,
-							value: localVar.value[property]
-						});
-					}
-					a.push({ name: localVar.key, value: props });
-				} else {
-					a.push({
-						name: localVar.key,
-						value: localVar.value
-					});
-				}
+				// a.push({
+				// 	name: localVar.key,
+				// 	value: this.convertStateVarValue(localVar.value)
+				// });
+				a.push(<IRuntimeVariable> localVar);
 			}
 		}
 
@@ -530,6 +537,24 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			return true;
 		}
 		return false;
+	}
+
+	public runCommand(cmd: string, callback: DebuggerCallbackWithResult<string>): void {
+		const request: FitnesseRequest = {
+			lineNumber: 0,
+			control: 'cmd',
+			statement: cmd
+		};
+
+		this._fitnesseApi.exec(request, (response) => {
+			let result: string = "did not get a result, weird";
+
+			if (response?.result?.messages) {
+				result = response.result.messages[0];
+			}
+
+			callback(result);
+		});
 	}
 
 	private executeLine(ln: number, reverse: boolean, callback: DebuggerCallback): void {

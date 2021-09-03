@@ -1,5 +1,6 @@
 
 import * as net from 'net';
+//import { NotebookControllerAffinity } from 'vscode';
 import { DebuggerCallback } from './fitnesseRuntimeProxy';
 //import PromiseSocket from 'promise-socket';
 // import WebSocketAsPromised = require('websocket-as-promised');
@@ -26,7 +27,7 @@ export interface ApplicationState {
 }
 
 export interface StateVar {
-    key: string;
+    name: string;
     value: any;
 }
 
@@ -69,7 +70,8 @@ export class MockFitnesseApi implements FitnesseApi {
     //private _client?: WebSocketAsPromised;
 
     // eslint-disable-next-line no-use-before-define
-    private _callback?: FitnesseApiCallback;
+    private _queue : any;
+
     //private _buffer?: string;
 
     private _state: number = STATE_DISCONNECTED;
@@ -77,12 +79,16 @@ export class MockFitnesseApi implements FitnesseApi {
     constructor() {
         const that = this;
 
+        this._queue = {};
         this._socket = new net.Socket();
         //this._client = new PromiseSocket(this._socket);
 
         this._socket.on('data', function (data) {
-            if (that._callback) {
-                that._callback(<FitnesseResponse>JSON.parse(data.toString('utf-8')));
+            const response =<FitnesseResponse>JSON.parse(data.toString('utf-8'));
+            const callback = that._queue[response.requestId];
+
+            if (callback) {
+                callback(response);
             }
         });
 
@@ -152,10 +158,9 @@ export class MockFitnesseApi implements FitnesseApi {
     public exec(request: FitnesseRequest, callback: FitnesseApiCallback): void {
 
         this._requestId++;
-        this._callback = callback;
-        //this._buffer = '';
 
         request.requestId = this._requestId + "";
+        this._queue[request.requestId] = callback;
 
         if (request.statement) {
             request.statement = Buffer.from(this.htmlBuilder(request.statement)).toString('base64');
