@@ -14,7 +14,6 @@ import { basename } from 'path';
 import { FitnesseRuntimeProxy, IRuntimeBreakpoint, FileAccessor, IRuntimeVariable, timeout, IRuntimeVariableType } from './fitnesseRuntimeProxy';
 import { Subject } from 'await-notify';
 import { MockFitnesseApi } from './fitnesseApi';
-import { stringify } from 'node:querystring';
 
 /**
  * This interface describes the mock-debug specific launch attributes
