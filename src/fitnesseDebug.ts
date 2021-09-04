@@ -473,7 +473,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		switch (args.context) {
 			case 'repl':
 				
-				if (args.expression.toLocaleLowerCase().startsWith('|')) {
+				if (args.expression.toLocaleLowerCase().startsWith('!')) {
 					this._runtime.runCommand(args.expression, (result) => {
 						response.body = {
 							result: result,

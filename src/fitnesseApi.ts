@@ -1,7 +1,7 @@
 
 import * as net from 'net';
 //import { NotebookControllerAffinity } from 'vscode';
-import { DebuggerCallback } from './fitnesseRuntimeProxy';
+import { DebuggerCallback, DebuggerCallbackWithResult } from './fitnesseRuntimeProxy';
 //import PromiseSocket from 'promise-socket';
 // import WebSocketAsPromised = require('websocket-as-promised');
 // import WebSocket = require('ws');
@@ -67,54 +67,60 @@ export class MockFitnesseApi implements FitnesseApi {
 
     private _socket: net.Socket;
     // eslint-disable-next-line no-use-before-define
-    private _queue : any;
+    private _queue: any;
     private _state: number = STATE_DISCONNECTED;
+    private _buffer: Buffer;
+    private _bufferPos: number = 0;
 
-    constructor() {
+    constructor(errorCallback? : DebuggerCallbackWithResult<string>) {
         const that = this;
 
         this._queue = {};
         this._socket = new net.Socket();
+        this._buffer = Buffer.alloc(1024000 * 4);
 
         this._socket.on('data', function (data) {
-            const response =<FitnesseResponse>JSON.parse(data.toString('utf-8'));
-            const callback = that._queue[response.requestId];
 
-            if (callback) {
-                callback(response);
+            let readPos = 0;
+            let eotCnt = 0;
+
+            while (readPos < data.length) {
+                const char = data[readPos];
+
+                if (char === 13 || char === 10) {
+                    eotCnt++;
+                    that._buffer[that._bufferPos++] = char;
+                }
+
+                ++readPos;
+
+                if (eotCnt === 4) {
+                    const payload = that._buffer.toString('utf-8', 0, that._bufferPos);
+                    const response = <FitnesseResponse>JSON.parse(payload);
+                    const callback = that._queue[response.requestId];
+
+                    console.log('req in: ' + response.requestId);
+                    that._bufferPos = 0;
+
+                    if (callback){
+                        delete that._queue[response.requestId];
+                        callback(response);
+                    }
+                }
             }
         });
 
         this._socket.on('close', function () {
             that._state = STATE_DISCONNECTED;
             console.log('Connection closed');
+
+            if (errorCallback){
+                errorCallback('close');
+            }
         });
     }
 
     private _requestId: number = 0;
-
-    private htmlBuilder(fixture: string): string {
-        const lines = fixture.split(/\r?\n/);
-        let html = '<table>';
-
-        for (const ln of lines) {
-            if (ln.trim().length > 0) {
-                html += '<tr>';
-                const parts = ln.trim()
-                    .split('|')
-                    .filter(part => part !== '|' && part !== '' && part !== '!');
-
-                for (const part of parts) {
-                    html += '<td>' + part + '</td>';
-                }
-
-                html += '</tr>';
-            }
-        }
-
-        html += '</table>';
-        return html;
-    };
 
     public connect(server: string, port: number, callback: DebuggerCallback): void {
         const that = this;
@@ -123,7 +129,7 @@ export class MockFitnesseApi implements FitnesseApi {
             return;
         }
 
-       
+
         this._socket.connect(port, server, () => {
             console.log('Connected');
             that._state = STATE_CONNECTED;
@@ -139,12 +145,7 @@ export class MockFitnesseApi implements FitnesseApi {
 
         request.requestId = this._requestId + "";
         this._queue[request.requestId] = callback;
-
-        if (request.statement) {
-            request.statement = Buffer.from(this.htmlBuilder(request.statement)).toString('base64');
-        }
-        request.statement;
-
+        
         this._socket.write(JSON.stringify(request) + '\r\n\r\n');
     }
 }
