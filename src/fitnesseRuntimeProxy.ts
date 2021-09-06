@@ -1,6 +1,8 @@
 
 import { EventEmitter } from 'events';
 import { FitnesseApi, FitnesseRequest, FitnesseResponse } from './fitnesseApi';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface DebuggerCallback {
 	(): void;
@@ -60,16 +62,97 @@ export function timeout(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export interface IFitResultsLogger {
+	logExecution(results: FitnesseRequest, response: FitnesseResponse): void;
+	initialize(): void;
+}
+
+export class NullResultsLogger implements IFitResultsLogger {
+	logExecution(results: FitnesseRequest, response: FitnesseResponse): void {
+	}
+
+	initialize(): void {
+
+	}
+}
+
+export class FileResultsLogger implements IFitResultsLogger {
+
+	private _logPath: string;
+
+	constructor(logPath: string) {
+		this._logPath = logPath;
+	}
+
+	private getHistoryFile(logFile: string): string {
+		const historyPath = path.join(path.dirname(logFile), 'run-history');
+		const baseName = path.basename(logFile, path.extname(logFile));
+		const serialTime = Date.now();
+
+		const historyFile = path.join(historyPath, baseName + serialTime + '.fitlog');
+		return historyFile;
+	}
+
+	initialize(): void {
+
+		// copy the old file to history
+		fs.copyFileSync(this._logPath, this.getHistoryFile(this._logPath));
+		// blank current run
+		fs.writeFile(this._logPath, '', err => {
+			if (err) {
+				console.error(err);
+				return;
+			}
+		});
+	}
+
+	logExecution(request: FitnesseRequest, response: FitnesseResponse): void {
+
+		let buf: string = '----------\r\n';
+		buf += 'request : ' + request.requestId + '\r\n\tline : ' + request.lineNumber + '\r\n';
+		buf += request.statement + '\r\n';
+		buf += 'response : ' + '\r\n';
+		buf += '\tpass : ' + response.result?.pass +
+			', fail : ' + response.result?.fail +
+			', exceptions : ' + response.result?.exceptions;
+
+		if (response.result?.error) {
+			const error = response.result.error;
+			buf += '\r\n\r\nerrors : \r\n\tCode : ' + error.code + '\r\n';
+			for (const e of error.messages)
+			{
+				buf += '\t' + e + '\r\n';
+			}
+
+			if (error.stack) {
+				buf += 'stack : \r\n\t' + error.stack;
+			}
+		}
+
+		buf += '\r\n----------\r\n\r\n';
+
+		fs.writeFile(this._logPath, buf, { flag: 'a+' }, err => {
+			if (err) {
+				console.error(err);
+				return;
+			}
+		});
+
+	}
+}
+
 /**
  * A Mock runtime with minimal debugger functionality.
  */
 export class FitnesseRuntimeProxy extends EventEmitter {
 
-	// the initial (and one and only) file we are 'debugging'
+
 	private _sourceFile: string = '';
 	public get sourceFile() {
 		return this._sourceFile;
 	}
+
+	private _resultsLogger: IFitResultsLogger;
 
 	private _variables = new Map<string, IRuntimeVariable>();
 
@@ -118,12 +201,17 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 	constructor(private _fileAccessor: FileAccessor, private _fitnesseApi: FitnesseApi) {
 		super();
+		this._resultsLogger = new NullResultsLogger();
 	}
 
 	/**
 	 * Start executing the given program.
 	 */
 	public async start(program: string, stopOnEntry: boolean, callback: DebuggerCallback): Promise<void> {
+
+		const logFile = path.join(path.dirname(program), path.basename(program, path.extname(program)) + '.fitlog');
+		this._resultsLogger = new FileResultsLogger(logFile);
+		this._resultsLogger.initialize();
 
 		await this.loadSource(program);
 
@@ -416,7 +504,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 		if (this._lastResponse) {
 			for (let globalVar of this._lastResponse.globals) {
-				a.push(<IRuntimeVariable> globalVar);
+				a.push(<IRuntimeVariable>globalVar);
 				// a.push({
 				// 	name: globalVar.key,
 				// 	value: this.convertStateVarValue(globalVar.value)
@@ -440,7 +528,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 				// 	name: localVar.key,
 				// 	value: this.convertStateVarValue(localVar.value)
 				// });
-				a.push(<IRuntimeVariable> localVar);
+				a.push(<IRuntimeVariable>localVar);
 			}
 		}
 
@@ -551,8 +639,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 			if (response?.result?.messages) {
 				result = '';
-				for(const msg of response.result.messages){
-				result += (msg + '\r\n');
+				for (const msg of response.result.messages) {
+					result += (msg + '\r\n');
 				}
 			}
 
@@ -575,6 +663,11 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			line = this.getLine(++fixtureLn);
 		};
 
+		if (buffer.trim() === '' && (fixtureLn >= this._sourceLines.length - 1)) {
+			this.sendEvent('end');
+			return;
+		}
+
 		const request: FitnesseRequest = {
 			lineNumber: ln,
 			control: 'x',
@@ -584,6 +677,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		this._fitnesseApi.exec(request, (response) => {
 
 			this._lastResponse = response;
+
+			this._resultsLogger.logExecution(request, response);
 
 			while (reverse ? this._instruction >= this._starts[ln] : this._instruction < this._ends[ln]) {
 				reverse ? this._instruction-- : this._instruction++;

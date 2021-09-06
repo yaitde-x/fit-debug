@@ -72,7 +72,7 @@ export class MockFitnesseApi implements FitnesseApi {
     private _buffer: Buffer;
     private _bufferPos: number = 0;
 
-    constructor(errorCallback? : DebuggerCallbackWithResult<string>) {
+    constructor(errorCallback?: DebuggerCallbackWithResult<string>) {
         const that = this;
 
         this._queue = {};
@@ -89,8 +89,11 @@ export class MockFitnesseApi implements FitnesseApi {
 
                 if (char === 13 || char === 10) {
                     eotCnt++;
-                    that._buffer[that._bufferPos++] = char;
+                } else {
+                    eotCnt = 0;
                 }
+
+                that._buffer[that._bufferPos++] = char;
 
                 ++readPos;
 
@@ -102,7 +105,7 @@ export class MockFitnesseApi implements FitnesseApi {
                     console.log('req in: ' + response.requestId);
                     that._bufferPos = 0;
 
-                    if (callback){
+                    if (callback) {
                         delete that._queue[response.requestId];
                         callback(response);
                     }
@@ -114,7 +117,7 @@ export class MockFitnesseApi implements FitnesseApi {
             that._state = STATE_DISCONNECTED;
             console.log('Connection closed');
 
-            if (errorCallback){
+            if (errorCallback) {
                 errorCallback('close');
             }
         });
@@ -145,7 +148,8 @@ export class MockFitnesseApi implements FitnesseApi {
 
         request.requestId = this._requestId + "";
         this._queue[request.requestId] = callback;
-        
+
+        console.log('req out : ' + request.requestId);
         this._socket.write(JSON.stringify(request) + '\r\n\r\n');
     }
 }

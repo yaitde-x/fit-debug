@@ -11,6 +11,14 @@
 			"program": "${workspaceFolder}/create_claim.fit",
 			"stopOnEntry": true,
 			"trace": false
+		},
+		{
+			"type": "fitnesse",
+			"request": "launch",
+			"name": "Debug current test",
+			"program": "${file}",
+			"stopOnEntry": true,
+			"trace": false
 		}
 	]
 }

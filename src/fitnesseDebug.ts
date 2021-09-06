@@ -59,7 +59,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor(fileAccessor: FileAccessor) {
-		super("mock-debug.txt");
+		super("obsolete");
 
 		// this debugger uses zero-based lines and columns
 		this.setDebuggerLinesStartAt1(false);
@@ -313,8 +313,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 
 		let stack = '';
 
-		if (error?.stack && error?.stack.length > 0)
-		{
+		if (error?.stack && error?.stack.length > 0) {
 			stack = error?.stack.join('\n');
 		}
 
@@ -471,7 +470,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 
 		switch (args.context) {
 			case 'repl':
-				
+
 				if (args.expression.toLocaleLowerCase().startsWith('!')) {
 					this._runtime.runCommand(args.expression, (result) => {
 						response.body = {
@@ -484,7 +483,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 					});
 
 					return;
-				}	
+				}
 
 				const matches = /new +([0-9]+)/.exec(args.expression);
 				if (matches && matches.length === 2) {
