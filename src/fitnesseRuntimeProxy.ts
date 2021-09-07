@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { FitnesseApi, FitnesseRequest, FitnesseResponse } from './fitnesseApi';
 import * as fs from 'fs';
 import * as path from 'path';
+import { FileResultsLogger, IFitResultsLogger, NullResultsLogger } from './resultsLogger';
 
 export interface DebuggerCallback {
 	(): void;
@@ -62,85 +63,6 @@ export function timeout(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export interface IFitResultsLogger {
-	logExecution(results: FitnesseRequest, response: FitnesseResponse): void;
-	initialize(): void;
-}
-
-export class NullResultsLogger implements IFitResultsLogger {
-	logExecution(results: FitnesseRequest, response: FitnesseResponse): void {
-	}
-
-	initialize(): void {
-
-	}
-}
-
-export class FileResultsLogger implements IFitResultsLogger {
-
-	private _logPath: string;
-
-	constructor(logPath: string) {
-		this._logPath = logPath;
-	}
-
-	private getHistoryFile(logFile: string): string {
-		const historyPath = path.join(path.dirname(logFile), 'run-history');
-		const baseName = path.basename(logFile, path.extname(logFile));
-		const serialTime = Date.now();
-
-		const historyFile = path.join(historyPath, baseName + serialTime + '.fitlog');
-		return historyFile;
-	}
-
-	initialize(): void {
-
-		// copy the old file to history
-		fs.copyFileSync(this._logPath, this.getHistoryFile(this._logPath));
-		// blank current run
-		fs.writeFile(this._logPath, '', err => {
-			if (err) {
-				console.error(err);
-				return;
-			}
-		});
-	}
-
-	logExecution(request: FitnesseRequest, response: FitnesseResponse): void {
-
-		let buf: string = '----------\r\n';
-		buf += 'request : ' + request.requestId + '\r\n\tline : ' + request.lineNumber + '\r\n';
-		buf += request.statement + '\r\n';
-		buf += 'response : ' + '\r\n';
-		buf += '\tpass : ' + response.result?.pass +
-			', fail : ' + response.result?.fail +
-			', exceptions : ' + response.result?.exceptions;
-
-		if (response.result?.error) {
-			const error = response.result.error;
-			buf += '\r\n\r\nerrors : \r\n\tCode : ' + error.code + '\r\n';
-			for (const e of error.messages)
-			{
-				buf += '\t' + e + '\r\n';
-			}
-
-			if (error.stack) {
-				buf += 'stack : \r\n\t' + error.stack;
-			}
-		}
-
-		buf += '\r\n----------\r\n\r\n';
-
-		fs.writeFile(this._logPath, buf, { flag: 'a+' }, err => {
-			if (err) {
-				console.error(err);
-				return;
-			}
-		});
-
-	}
-}
-
 /**
  * A Mock runtime with minimal debugger functionality.
  */
@@ -158,9 +80,9 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 	// the contents (= lines) of the one and only file
 	private _sourceLines: string[] = [];
-	private _instructions: Word[] = [];
-	private _starts: number[] = [];
-	private _ends: number[] = [];
+	//private _instructions: Word[] = [];
+	//private _starts: number[] = [];
+	//private _ends: number[] = [];
 
 	// This is the next line that will be 'executed'
 	private _nextLineToExecute = 0;
@@ -170,7 +92,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	}
 	private set _currentLine(x) {
 		this._nextLineToExecute = x;
-		this._instruction = this._starts[x];
+		//this._instruction = this._starts[x];
 	}
 	private _currentColumn: number | undefined;
 
@@ -215,6 +137,12 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 		await this.loadSource(program);
 
+		fs.watch(program, { persistent: false }, async (event: string, fileName: string) => {
+			if (event === 'change') {
+				await this.loadSource(fileName, this._currentLine);
+			}
+		});
+
 		await this.verifyBreakpoints(this._sourceFile);
 
 		await this._fitnesseApi.connect('127.0.0.1', 1111, () => {
@@ -229,6 +157,10 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			}
 
 		});
+	}
+
+	public stop(): void {
+		fs.unwatchFile(this._sourceFile);
 	}
 
 	/**
@@ -543,12 +475,12 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 		const instructions: RuntimeDisassembledInstruction[] = [];
 
-		for (let a = address; a < address + instructionCount; a++) {
-			instructions.push({
-				address: a,
-				instruction: (a >= 0 && a < this._instructions.length) ? this._instructions[a].name : 'nop'
-			});
-		}
+		// for (let a = address; a < address + instructionCount; a++) {
+		// 	instructions.push({
+		// 		address: a,
+		// 		instruction: (a >= 0 && a < this._instructions.length) ? this._instructions[a].name : 'nop'
+		// 	});
+		// }
 
 		return instructions;
 	}
@@ -567,27 +499,80 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		return words;
 	}
 
-	private async loadSource(file: string): Promise<void> {
-		if (this._sourceFile !== file) {
-			this._sourceFile = file;
-			const contents = await this._fileAccessor.readFile(file);
-			this._sourceLines = contents.split(/\r?\n/);
+	private async loadSource(file: string, fromLine?: number | undefined): Promise<void> {
+		if (this._sourceFile !== file || fromLine) {
 
-			this._instructions = [];
+			//this._sourceFile = file;
+			//this._sourceFile = '/Users/sakamoto/Code/public/vscode-fit-debug/sampleWorkspace/create_claim.fit';
+			if (!fromLine){
+				this._sourceFile = file;
+			}
 
-			for (let line of this._sourceLines) {
-				this._starts.push(this._instructions.length);
-				const words = this.getWords(line);
-				for (let word of words) {
-					this._instructions.push(word);
+			const contents = await this._fileAccessor.readFile(this._sourceFile);
+			const sourceLines = contents.split(/\r?\n/);
+			let ln = 0;
+
+			//this._sourceLines = contents.split(/\r?\n/);
+			//this._instructions = [];
+
+			if (!this._sourceLines) {
+				this._sourceLines = [];
+			}
+
+			for (let line of sourceLines) {
+				if (!fromLine || ln >= fromLine) {
+					if (ln >= this._sourceLines.length) {
+						this._sourceLines.push(line);
+					} else {
+						this._sourceLines[ln] = line;
+					}
 				}
-				this._ends.push(this._instructions.length);
+				ln++;
+				// this._starts.push(this._instructions.length);
+				// const words = this.getWords(line);
+				// for (let word of words) {
+				// 	this._instructions.push(word);
+				// }
+				// this._ends.push(this._instructions.length);
 			}
 
 		}
 	}
 
+	public checkPoint(lineNumber?: number | undefined): void {
+		lineNumber = lineNumber || (this._currentLine + 1);
+
+		const cpPath = this.getCheckPointPath();
+		fs.writeFileSync(cpPath, lineNumber + '');
+	}
+
+	public clearAnyCheckpoint(): boolean {
+
+		const cpPath = this.getCheckPointPath();
+		if (fs.existsSync(cpPath)) {
+			fs.unlinkSync(cpPath);
+			return true;
+		}
+		return false;
+	}
+
+	private getCheckPointPath(): string {
+		return path.join(path.dirname(this._sourceFile), "cp.dbg");
+	}
+
+	private getCheckPoint(): number | undefined {
+		const cpPath = this.getCheckPointPath();
+
+		if (fs.existsSync(cpPath)) {
+			return parseInt(fs.readFileSync(cpPath).toString('utf-8'));
+		}
+
+		return undefined;
+	}
+
 	private findNextStatement(reverse: boolean, stepEvent?: string): boolean {
+
+		let cp: number | undefined = this.getCheckPoint();
 
 		for (let ln = this._currentLine; reverse ? ln >= 0 : ln < this._sourceLines.length; reverse ? ln-- : ln++) {
 
@@ -615,9 +600,12 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			}
 
 			const line = this.getLine(ln);
-			if (line.length > 0 && line.startsWith('!|')) {
-				this._currentLine = ln;
-				break;
+
+			if (!cp || (cp && ln >= cp)) {
+				if (line.length > 0 && line.startsWith('!|')) {
+					this._currentLine = ln;
+					break;
+				}
 			}
 		}
 		if (stepEvent) {
@@ -680,12 +668,12 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 			this._resultsLogger.logExecution(request, response);
 
-			while (reverse ? this._instruction >= this._starts[ln] : this._instruction < this._ends[ln]) {
-				reverse ? this._instruction-- : this._instruction++;
-				if (this._instructionBreakpoints.has(this._instruction)) {
-					this.sendEvent('stopOnInstructionBreakpoint');
-				}
-			}
+			// while (reverse ? this._instruction >= this._starts[ln] : this._instruction < this._ends[ln]) {
+			// 	reverse ? this._instruction-- : this._instruction++;
+			// 	if (this._instructionBreakpoints.has(this._instruction)) {
+			// 		this.sendEvent('stopOnInstructionBreakpoint');
+			// 	}
+			// }
 
 			// find variable accesses
 			// let reg0 = /\$([a-z][a-z0-9]*)(=(false|true|[0-9]+(\.[0-9]+)?|\".*\"|\{.*\}))?/ig;

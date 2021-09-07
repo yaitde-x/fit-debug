@@ -471,7 +471,9 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		switch (args.context) {
 			case 'repl':
 
-				if (args.expression.toLocaleLowerCase().startsWith('!')) {
+				const cmd = args.expression.toLocaleLowerCase().trim();
+
+				if (cmd.startsWith('!')) {
 					this._runtime.runCommand(args.expression, (result) => {
 						response.body = {
 							result: result,
@@ -486,7 +488,37 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 				}
 
 				const matches = /new +([0-9]+)/.exec(args.expression);
-				if (matches && matches.length === 2) {
+				if (cmd.startsWith('cp')) {
+					if (cmd.length > 2) {
+						const lineNumber = parseInt(cmd.substr(2));
+						this._runtime.checkPoint(lineNumber);
+					} else {
+						this._runtime.checkPoint();
+					}
+
+					response.body = {
+						result: 'checkpoint created',
+						type: 'string',
+						variablesReference: 0
+					};
+
+					this.sendResponse(response);
+					return;
+				}
+
+				else if (cmd.startsWith('ccp')) {
+					const msg = this._runtime.clearAnyCheckpoint() ? 'checkpoint cleared' : 'no checkpoint to clear';
+
+					response.body = {
+						result: msg,
+						type: 'string',
+						variablesReference: 0
+					};
+
+					this.sendResponse(response);
+					return;
+				}
+				else if (matches && matches.length === 2) {
 					const mbp = await this._runtime.setBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
 					const bp = new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this._runtime.sourceFile)) as DebugProtocol.Breakpoint;
 					bp.id = mbp.id;
@@ -687,6 +719,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		if (args.progressId) {
 			this._cancelledProgressId = args.progressId;
 		}
+		this._runtime.stop();
 	}
 
 	protected disassembleRequest(response: DebugProtocol.DisassembleResponse, args: DebugProtocol.DisassembleArguments) {

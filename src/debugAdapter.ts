@@ -4,7 +4,7 @@
 
 import { FitnesseDebugSession } from './fitnesseDebug';
 
-import { readFile } from 'fs';
+import * as fs from 'fs';
 import * as Net from 'net';
 import { FileAccessor } from './fitnesseRuntimeProxy';
 
@@ -19,7 +19,7 @@ import { FileAccessor } from './fitnesseRuntimeProxy';
 const fsAccessor:  FileAccessor = {
 	async readFile(path: string): Promise<string> {
 		return new Promise((resolve, reject) => {
-			readFile(path, (err, data) => {
+			fs.readFile(path, { flag : 'r' }, (err, data) => {
 				if (err) {
 					reject(err);
 				} else {
