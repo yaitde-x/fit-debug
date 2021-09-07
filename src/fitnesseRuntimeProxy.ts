@@ -540,7 +540,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	}
 
 	public checkPoint(lineNumber?: number | undefined): void {
-		lineNumber = lineNumber || (this._currentLine + 1);
+		lineNumber = lineNumber || (this._currentLine);
 
 		const cpPath = this.getCheckPointPath();
 		fs.writeFileSync(cpPath, lineNumber + '');

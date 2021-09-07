@@ -36,7 +36,10 @@ export class FileResultsLogger implements IFitResultsLogger {
 	initialize(): void {
 
 		// copy the old file to history
-		fs.copyFileSync(this._logPath, this.getHistoryFile(this._logPath));
+		if (fs.existsSync(this._logPath)) {
+			fs.copyFileSync(this._logPath, this.getHistoryFile(this._logPath));
+		}
+		
 		// blank current run
 		fs.writeFile(this._logPath, '', err => {
 			if (err) {
