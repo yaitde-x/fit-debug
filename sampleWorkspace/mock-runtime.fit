@@ -1,1 +1,7 @@
-!|fit_runtime.
+
+!|fit_runtime.MockRuntime|
+
+!|Check|that|run command|is|false|
+
+!|fit_runtime.MockRuntime.Hello|Go!|
+

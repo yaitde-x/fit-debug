@@ -504,7 +504,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 			//this._sourceFile = file;
 			//this._sourceFile = '/Users/sakamoto/Code/public/vscode-fit-debug/sampleWorkspace/create_claim.fit';
-			if (!fromLine){
+			if (!fromLine) {
 				this._sourceFile = file;
 			}
 
@@ -617,6 +617,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 	public runCommand(cmd: string, callback: DebuggerCallbackWithResult<string>): void {
 		const request: FitnesseRequest = {
+			requestId: 'n/a',
+			testName: 'cmd',
 			lineNumber: 0,
 			control: 'cmd',
 			statement: cmd
@@ -657,6 +659,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		}
 
 		const request: FitnesseRequest = {
+			requestId: 'n/a',
+			testName: this._sourceFile,
 			lineNumber: ln,
 			control: 'x',
 			statement: buffer

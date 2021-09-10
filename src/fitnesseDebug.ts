@@ -13,7 +13,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
 import { FitnesseRuntimeProxy, IRuntimeBreakpoint, FileAccessor, IRuntimeVariable, timeout, IRuntimeVariableType } from './fitnesseRuntimeProxy';
 import { Subject } from 'await-notify';
-import { MockFitnesseApi } from './fitnesseApi';
+import { SocketFitnesseApi } from './fitnesseApi';
 
 /**
  * This interface describes the mock-debug specific launch attributes
@@ -65,7 +65,9 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		this.setDebuggerLinesStartAt1(false);
 		this.setDebuggerColumnsStartAt1(false);
 
-		this._runtime = new FitnesseRuntimeProxy(fileAccessor, new MockFitnesseApi());
+		this._runtime = new FitnesseRuntimeProxy(fileAccessor, new SocketFitnesseApi(() => {
+			this.sendEvent(new TerminatedEvent());
+		}));
 
 		// setup event handlers
 		this._runtime.on('stopOnEntry', () => {

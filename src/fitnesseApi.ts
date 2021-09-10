@@ -10,7 +10,8 @@ export interface FitnesseApiCallback {
     (response: FitnesseResponse): void;
 }
 export interface FitnesseRequest {
-    requestId?: string;
+    testName: string;
+    requestId: string;
     control: string;
     lineNumber: number;
     statement?: string;
@@ -62,7 +63,7 @@ export interface FitnesseApi {
 const STATE_DISCONNECTED: number = 0;
 const STATE_CONNECTED: number = 1;
 
-export class MockFitnesseApi implements FitnesseApi {
+export class SocketFitnesseApi implements FitnesseApi {
     rootPath: string = '/Users/sakamoto/Temp';
 
     private _socket: net.Socket;
@@ -118,7 +119,7 @@ export class MockFitnesseApi implements FitnesseApi {
             console.log('Connection closed');
 
             if (errorCallback) {
-                errorCallback('close');
+                errorCallback('end');
             }
         });
     }
