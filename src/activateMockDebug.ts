@@ -6,6 +6,7 @@
 
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
+import { SocketFitnesseApi } from './fitnesseApi';
 import { FitnesseDebugSession } from './fitnesseDebug';
 import { FileAccessor } from './fitnesseRuntimeProxy';
 
@@ -202,6 +203,6 @@ export const workspaceFileAccessor: FileAccessor = {
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
 	createDebugAdapterDescriptor(_session: vscode.DebugSession): ProviderResult<vscode.DebugAdapterDescriptor> {
-		return new vscode.DebugAdapterInlineImplementation(new FitnesseDebugSession(workspaceFileAccessor));
+		return new vscode.DebugAdapterInlineImplementation(new FitnesseDebugSession(workspaceFileAccessor, new SocketFitnesseApi()));
 	}
 }

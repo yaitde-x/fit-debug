@@ -13,7 +13,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
 import { FitnesseRuntimeProxy, IRuntimeBreakpoint, FileAccessor, IRuntimeVariable, timeout, IRuntimeVariableType } from './fitnesseRuntimeProxy';
 import { Subject } from 'await-notify';
-import { SocketFitnesseApi } from './fitnesseApi';
+import { FitnesseApi } from './fitnesseApi';
 
 /**
  * This interface describes the mock-debug specific launch attributes
@@ -44,7 +44,7 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 
 	private _cancellationTokens = new Map<number, boolean>();
 
-	private _reportProgress = false;
+	private _reportProgress = true;
 	private _progressId = 10000;
 	private _cancelledProgressId: string | undefined = undefined;
 	private _isProgressCancellable = true;
@@ -58,18 +58,25 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
 	 */
-	public constructor(fileAccessor: FileAccessor) {
+	public constructor(fileAccessor: FileAccessor, fitnesseApi: FitnesseApi) {
 		super("obsolete");
 
 		// this debugger uses zero-based lines and columns
 		this.setDebuggerLinesStartAt1(false);
 		this.setDebuggerColumnsStartAt1(false);
 
-		this._runtime = new FitnesseRuntimeProxy(fileAccessor, new SocketFitnesseApi(() => {
-			this.sendEvent(new TerminatedEvent());
-		}));
+		// this._runtime = new FitnesseRuntimeProxy(fileAccessor, new SocketFitnesseApi(() => {
+		// 	this.sendEvent(new TerminatedEvent());
+		// }));
+		this._runtime = new FitnesseRuntimeProxy(fileAccessor, fitnesseApi);
 
 		// setup event handlers
+		this._runtime.on('executionStart', (id: string) => {
+			this.executionStart(id);
+		});
+		this._runtime.on('executionStop', (id: string) => {
+			this.executionStop(id);
+		});
 		this._runtime.on('stopOnEntry', () => {
 			this.sendEvent(new StoppedEvent('entry', FitnesseDebugSession.threadID));
 		});
@@ -112,6 +119,51 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 			this.sendEvent(new TerminatedEvent());
 		});
 	}
+
+	private async executionStop(id: string) {
+		this._executionInProgress = false;
+		this._executionProgress = 0;
+
+		this.sendEvent(new ProgressEndEvent(id, 'done.'));
+		this.sendEvent(new OutputEvent(`end request: ${id}\n`));
+	}
+
+	private _executionInProgress = true;
+	private _executionProgress = 0;
+
+	private async showProgress(id: string) {
+
+		if (this._executionInProgress) {
+
+			this.sendEvent(new ProgressUpdateEvent(id, `progress: ${this._executionInProgress}`));
+			if (this._cancelledProgressId === id) {
+				this._cancelledProgressId = undefined;
+				this.sendEvent(new OutputEvent(`cancel execution: ${id}\n`));
+				return;
+			}
+
+			this._executionProgress++;
+			if (this._executionProgress > 100) {
+				this._executionProgress = 0;
+			}
+
+			setTimeout(this.showProgress, 100, id);
+		}
+	}
+
+	private async executionStart(id: string) {
+
+		const title = 'executing...';
+		const startEvent: DebugProtocol.ProgressStartEvent = new ProgressStartEvent(id, title);
+		startEvent.body.cancellable = false;
+		this._isProgressCancellable = false;
+		this.sendEvent(startEvent);
+		this.sendEvent(new OutputEvent(`start request: ${id}\n`));
+		this._executionInProgress = true;
+
+		setTimeout(this.showProgress, 100, id);
+	}
+
 
 	/**
 	 * The 'initialize' request is the first request called by the frontend
@@ -194,6 +246,24 @@ export class FitnesseDebugSession extends LoggingDebugSession {
 		// we request them early by sending an 'initializeRequest' to the frontend.
 		// The frontend will end the configuration sequence by calling 'configurationDone' request.
 		this.sendEvent(new InitializedEvent());
+	}
+
+	/**
+	 * The 'initialize' request is the first request called by the frontend
+	 * to interrogate the features the debug adapter provides.
+	 */
+	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
+
+		this._runtime.disconnect(() => {
+			this.sendResponse(response);
+		});
+	}
+
+	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
+
+		this._runtime.disconnect(() => {
+			this.sendResponse(response);
+		});
 	}
 
 	/**

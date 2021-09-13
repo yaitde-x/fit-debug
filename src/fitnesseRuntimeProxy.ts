@@ -78,13 +78,7 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 
 	private _variables = new Map<string, IRuntimeVariable>();
 
-	// the contents (= lines) of the one and only file
 	private _sourceLines: string[] = [];
-	//private _instructions: Word[] = [];
-	//private _starts: number[] = [];
-	//private _ends: number[] = [];
-
-	// This is the next line that will be 'executed'
 	private _nextLineToExecute = 0;
 
 	private get _currentLine() {
@@ -92,17 +86,11 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	}
 	private set _currentLine(x) {
 		this._nextLineToExecute = x;
-		//this._instruction = this._starts[x];
 	}
 	private _currentColumn: number | undefined;
 
-	// This is the next instruction that will be 'executed'
 	public _instruction = 0;
-
-	// maps from sourceFile to array of IRuntimeBreakpoint
 	private _breakPoints = new Map<string, IRuntimeBreakpoint[]>();
-
-	// all instruction breakpoint addresses
 	private _instructionBreakpoints = new Set<number>();
 
 	// since we want to send breakpoint events, we will assign an id to every event
@@ -124,6 +112,10 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 	constructor(private _fileAccessor: FileAccessor, private _fitnesseApi: FitnesseApi) {
 		super();
 		this._resultsLogger = new NullResultsLogger();
+	}
+
+	public disconnect(callback: DebuggerCallback) {
+		this._fitnesseApi.disconnect(callback);
 	}
 
 	/**
@@ -156,11 +148,15 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 				this.continue(false, () => { });
 			}
 
+		}, () => {
+			console.debug('connection broken');
+			this.sendEvent('end');
 		});
 	}
 
 	public stop(): void {
 		fs.unwatchFile(this._sourceFile);
+		this._fitnesseApi.disconnect(() => {});
 	}
 
 	/**
@@ -638,6 +634,8 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		});
 	}
 
+	private _requestId: number = 0;
+
 	private executeLine(ln: number, reverse: boolean, callback: DebuggerCallback): void {
 
 		if (!this.debug) {
@@ -649,7 +647,12 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 		let line = this.getLine(fixtureLn);
 
 		while (line && line.trim().length > 0) {
-			buffer += line + '\r\n';
+			buffer += line.trim();
+
+			if (buffer.endsWith('|')) {
+				buffer += '\r\n';
+			}
+
 			line = this.getLine(++fixtureLn);
 		};
 
@@ -658,19 +661,25 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			return;
 		}
 
+		const ID = '' + this._requestId++;
+
 		const request: FitnesseRequest = {
-			requestId: 'n/a',
+			requestId: ID,
 			testName: this._sourceFile,
 			lineNumber: ln,
 			control: 'x',
 			statement: buffer
 		};
 
+		this.sendEvent('executionStart', ID);
+		
 		this._fitnesseApi.exec(request, (response) => {
 
 			this._lastResponse = response;
 
 			this._resultsLogger.logExecution(request, response);
+
+			this.sendEvent('executionStop', ID);
 
 			// while (reverse ? this._instruction >= this._starts[ln] : this._instruction < this._ends[ln]) {
 			// 	reverse ? this._instruction-- : this._instruction++;
@@ -774,6 +783,11 @@ export class FitnesseRuntimeProxy extends EventEmitter {
 			// }
 
 			// nothing interesting found -> continue
+
+			if (response.resumeOnLine) {
+				this._currentLine = response.resumeOnLine - 1;
+			}
+
 			callback();
 		});
 

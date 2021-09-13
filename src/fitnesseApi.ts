@@ -17,6 +17,11 @@ export interface FitnesseRequest {
     statement?: string;
 }
 
+export const DEFAULT_APPLICATION_STATE = () : ApplicationState => {
+    return {
+        connectionId : 0, activeForm: '', testNumber: '', dataSet: '', user: '', userId: 0, systemTime: ''
+    };
+};
 export interface ApplicationState {
     connectionId: number;
     activeForm: string;
@@ -48,6 +53,7 @@ export interface ExecutionResult {
 
 export interface FitnesseResponse {
     requestId: string;
+    resumeOnLine?: number;
     state: ApplicationState;
     globals: StateVar[];
     locals: StateVar[];
@@ -55,7 +61,9 @@ export interface FitnesseResponse {
 }
 
 export interface FitnesseApi {
-    connect(server: string, port: number, callback: DebuggerCallback): void
+    connect(server: string, port: number, callback: DebuggerCallback, disconnectCallback: DebuggerCallbackWithResult<string>): void
+    disconnect(callback: DebuggerCallback);
+
     exec(request: FitnesseRequest, callback: FitnesseApiCallback): void;
 }
 
@@ -72,8 +80,9 @@ export class SocketFitnesseApi implements FitnesseApi {
     private _state: number = STATE_DISCONNECTED;
     private _buffer: Buffer;
     private _bufferPos: number = 0;
+    private _disconnectCallback?: DebuggerCallbackWithResult<string>;
 
-    constructor(errorCallback?: DebuggerCallbackWithResult<string>) {
+    constructor() {
         const that = this;
 
         this._queue = {};
@@ -118,21 +127,22 @@ export class SocketFitnesseApi implements FitnesseApi {
             that._state = STATE_DISCONNECTED;
             console.log('Connection closed');
 
-            if (errorCallback) {
-                errorCallback('end');
+            if (that._disconnectCallback) {
+                that._disconnectCallback('end');
             }
         });
     }
 
-    private _requestId: number = 0;
+    public disconnect(callback: DebuggerCallback) : void {
+        this._socket.end(callback);
+    }
 
-    public connect(server: string, port: number, callback: DebuggerCallback): void {
+    public connect(server: string, port: number, callback: DebuggerCallback, disconnectCallback: DebuggerCallbackWithResult<string>): void {
         const that = this;
 
         if (this._state === STATE_CONNECTED) {
             return;
         }
-
 
         this._socket.connect(port, server, () => {
             console.log('Connected');
@@ -144,10 +154,6 @@ export class SocketFitnesseApi implements FitnesseApi {
     }
 
     public exec(request: FitnesseRequest, callback: FitnesseApiCallback): void {
-
-        this._requestId++;
-
-        request.requestId = this._requestId + "";
         this._queue[request.requestId] = callback;
 
         console.log('req out : ' + request.requestId);

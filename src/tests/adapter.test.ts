@@ -19,12 +19,11 @@ suite('Node Debug Adapter', () => {
 	let dc: DebugClient;
 
 	setup( () => {
-		dc = new DebugClient('node', DEBUG_ADAPTER, 'mock');
+		dc = new DebugClient('node', DEBUG_ADAPTER, 'mock' , { argv0: "/mockData=\"/Users/sakamoto/Code/public/vscode-fit-debug/src/tests/data/mock-response1.json\"" });
 		return dc.start();
 	});
 
 	teardown( () => dc.stop() );
-
 
 	suite('basic', () => {
 

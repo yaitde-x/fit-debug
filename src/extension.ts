@@ -9,6 +9,7 @@ import { platform } from 'process';
 import { ProviderResult } from 'vscode';
 import { FitnesseDebugSession } from './fitnesseDebug';
 import { activateMockDebug, workspaceFileAccessor } from './activateMockDebug';
+import { SocketFitnesseApi } from './fitnesseApi';
 
 /*
  * The compile time flag 'runMode' controls how the debug adapter is run.
@@ -82,7 +83,7 @@ class MockDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDesc
 		if (!this.server) {
 			// start listening on a random port
 			this.server = Net.createServer(socket => {
-				const session = new FitnesseDebugSession(workspaceFileAccessor);
+				const session = new FitnesseDebugSession(workspaceFileAccessor, new SocketFitnesseApi());
 				session.setRunAsServer(true);
 				session.start(socket as NodeJS.ReadableStream, socket);
 			}).listen(0);
@@ -111,7 +112,7 @@ class MockDebugAdapterNamedPipeServerDescriptorFactory implements vscode.DebugAd
 			const pipePath = platform === "win32" ? join('\\\\.\\pipe\\', pipeName) : join(tmpdir(), pipeName);
 
 			this.server = Net.createServer(socket => {
-				const session = new FitnesseDebugSession(workspaceFileAccessor);
+				const session = new FitnesseDebugSession(workspaceFileAccessor, new SocketFitnesseApi());
 				session.setRunAsServer(true);
 				session.start(<NodeJS.ReadableStream>socket, socket);
 			}).listen(pipePath);
